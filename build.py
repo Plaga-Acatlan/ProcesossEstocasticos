@@ -25,7 +25,7 @@ def main():
 
     # Output según SO
     ext = {"Windows": "dll", "Linux": "so", "Darwin": "dylib"}.get(system, "so")
-    out_name = "matrix_ops" if system == "Windows" else "libmatrix"
+    out_name = "procesos"
     out_file = os.path.join(cwd, f"{out_name}.{ext}")
 
     # Comando final

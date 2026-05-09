@@ -6,15 +6,15 @@ from flask import Flask, request, render_template
 
 app = Flask(__name__)
 
-# 🔗 Auto-detección de librería compilada
+# Auto-detección de librería compilada
 _EXT_MAP = {"Windows": "dll", "Linux": "so", "Darwin": "dylib"}
 _SYSTEM = platform.system()
 _LIB_EXT = _EXT_MAP.get(_SYSTEM, "so")
-_LIB_NAME = f"matrix_ops.{_LIB_EXT}" if _SYSTEM == "Windows" else f"libmatrix.{_LIB_EXT}"
+_LIB_NAME = f"procesos.{_LIB_EXT}" 
 _LIB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), _LIB_NAME)
 
 if not os.path.exists(_LIB_PATH):
-    raise RuntimeError(f"⚠️ No se encontró '{_LIB_NAME}'. Ejecuta Ctrl+Shift+B en VS Code primero.")
+    raise RuntimeError(f"⚠️ No se encontró '{_LIB_NAME}'.")
 
 lib = ctypes.CDLL(_LIB_PATH)
 lib.sumar_matrices.argtypes = [
