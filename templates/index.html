@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Suma de Matrices con C</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 2rem auto; padding: 0 1rem; }
+        input { width: 100%; padding: 8px; margin: 8px 0; box-sizing: border-box; }
+        button { padding: 10px 20px; background: #007BFF; color: white; border: none; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        pre { background: #f4f4f4; padding: 1rem; border-radius: 4px; overflow-x: auto; }
+        .error { color: #d9534f; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h2>🔢 Suma de Matrices (Frontend Flask + Backend C)</h2>
+    <form method="post" action="/sumar">
+        <label>Matriz A <small>(filas separadas por <code>;</code>, columnas por <code>,</code>)</small></label>
+        <input type="text" name="matriz_a" placeholder="1,2,3;4,5,6" required>
+
+        <label>Matriz B</label>
+        <input type="text" name="matriz_b" placeholder="7,8,9;10,11,12" required>
+
+        <button type="submit">Sumar con C</button>
+    </form>
+
+    {% if error %}
+        <p class="error">⚠️ {{ error }}</p>
+    {% endif %}
+
+    {% if resultado %}
+        <h3>✅ Resultado:</h3>
+        <pre>{{ resultado }}</pre>
+    {% endif %}
+</body>
+</html>
