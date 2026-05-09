@@ -1,5 +1,9 @@
 #include "tool.h"
+#include "datatype.h"
 #include <math.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
 // Implementación de Gauss-Jordan
 int gauss_jordan(Matrix *A, Vector *b, Vector *x) {
@@ -65,5 +69,25 @@ int gauss_jordan(Matrix *A, Vector *b, Vector *x) {
     }
 
     free_matrix(aug);
+    return 0;
+}
+
+int fill_matrix3d_from_array(Matrix3D *mat3d, const double *flat_data) {
+    if (!mat3d || !flat_data) return -1;
+    
+    int offset = 0; 
+    
+    for (int d = 0; d < mat3d->depth; d++) {
+        int rows = mat3d->rows[d];
+        int cols = mat3d->cols[d];
+        int layer_size = rows * cols;
+        
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                mat3d->data[d][i][j] = flat_data[offset++];
+            }
+        }
+    }
+    
     return 0;
 }

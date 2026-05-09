@@ -35,4 +35,29 @@ void free_vector(Vector *vec);
 // Función para imprimir un vector
 void print_vector(Vector *vec);
 
+
+typedef struct {
+    int depth;
+    int *rows;
+    int *cols;
+    double ***data;
+} Matrix3D;
+
+// Funciones para Matrix3D
+Matrix3D* create_matrix3d(int depth, int *rows, int *cols);
+void free_matrix3d(Matrix3D *mat3d);
+void print_matrix3d(Matrix3D *mat3d);
+
+// Variables globales
+extern Matrix *g_input_matrix;
+extern Matrix *g_output_matrix;
+extern Matrix3D *g_matrix_3d;
+extern int NUM_ESTADOS;
+extern int NUM_POLITICAS;
+extern int NUM_DECISIONES;
+extern char TIPO[3];
+extern int rows[];
+extern int cols[];
+extern double flat_data[];
+
 #endif // DATATYPE_H
