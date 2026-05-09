@@ -54,5 +54,16 @@ dkms.conf
 # debug information files
 *.dwo
 
-# CMake generated files
+# Entornos virtuales
 .venv/
+venv/
+env/
+.venv_old/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
