@@ -3,32 +3,44 @@
 
 void load_default_data() {
     // Datos personalizados para el ejemplo
-    int estados = 2;
-    int decisiones = 2;
-    int politicas = 4;
+    int estados = 4;
+    int decisiones = 3;
+    int politicas = 6;
     char tipo[4] = "min";
 
     set_configuration(estados, politicas, decisiones, tipo);
-
     double mis_transiciones[] = {
         // Decisión 0
-        0.6, 0.4,
-        0.6, 0.4,
+        0.0, 7.0/8.0, 1.0/16.0, 1.0/16.0,
+        0.0, 3.0/4.0, 1.0/8.0, 1.0/8.0,
+        0.0, 0.0, 1.0/2.0, 1.0/2.0,
+        -1.0, -1.0, -1.0, -1.0,
         // Decisión 1
-        0.4, 0.6,
-        0.5, 0.5
+        -1.0, -1.0, -1.0, -1.0,
+        -1.0, -1.0, -1.0, -1.0,
+        0.0, 1.0, 0.0, 0.0,
+        -1.0, -1.0, -1.0, -1.0,
+        // Decisión 2
+        0.0, 0.0, 0.0, 0.0,
+        1.0, 0.0, 0.0, 0.0,
+        1.0, 0.0, 0.0, 0.0,
+        1.0, 0.0, 0.0, 0.0
     };
 
     double mis_costos[] = {
-        0.0, 0.0,
-        1200.0, 1200.0 
+        0.0, 0.0, 0.0,
+        1000.0, 0.0, 6000.0,
+        3000.0, 4000.0, 6000.0,
+        0.0, 0.0, 6000.0
     };
 
     int mis_politicas[] = {
-        1, 1,
-        1, 2,
-        2, 1,
-        2, 2
+        1, 1, 1, 3,
+        1, 1, 2, 3,
+        1, 1, 3, 3,
+        1, 3, 1, 3,
+        1, 3, 2, 3,
+        1, 3, 3, 3
     };
 
     init_with_custom_data(mis_transiciones, mis_costos, mis_politicas);
@@ -41,8 +53,7 @@ int main() {
     }
     //init_global_matrices();
     load_default_data();
-    
-    Matrix *resultados = solve_eep();
+    Matrix *resultados = Mejoramiento_Politicas(1);
     print_matrix(resultados);
 
     free_global_matrices();

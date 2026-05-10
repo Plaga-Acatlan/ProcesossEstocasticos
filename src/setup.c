@@ -11,6 +11,7 @@ Matrix3D *g_transiciones_3d = NULL;
 Vector *g_weights = NULL;
 Matrix *g_costos = NULL;
 Matrix *g_politicas = NULL;
+//Matrix *g_accesibles = NULL;
 
 // CONFIGURACIÓN POR DEFECTO
 int NUM_ESTADOS = 2;
@@ -47,6 +48,12 @@ static bool g_initialized = false;
 // IMPLEMENTACIÓN DE FUNCIONES
 bool is_setup_initialized(void) {
     return g_initialized;
+}
+
+int find_index(const int *array) {
+    for(int i = 0; i<NUM_POLITICAS; i++){
+        if(array[i] == 0) return i;
+    }
 }
 
 int set_configuration(int num_estados, int num_politicas, int num_decisiones, const char *tipo) {
@@ -147,22 +154,28 @@ void init_with_custom_data(
     for (int d = 0; d < NUM_DECISIONES; d++) dims[d] = NUM_ESTADOS;
     
     g_transiciones_3d = create_matrix3d(NUM_DECISIONES, dims, dims);
-    if (!g_transiciones_3d) goto error;
+    if (!g_transiciones_3d){
+        log_error("init_with_custom_data", "Fallo al crear tensor de transiciones", -1);
+        goto error;
+    }
     fill_matrix3d_from_array(g_transiciones_3d, transiciones_flat);
-    
+
     // 2. Crear y llenar matriz de costos
     g_costos = create_matrix(NUM_ESTADOS, NUM_DECISIONES);
     if (!g_costos) goto error;
+    int its = 0;
+
     for (int s = 0; s < NUM_ESTADOS; s++)
         for (int a = 0; a < NUM_DECISIONES; a++)
-            g_costos->data[s][a] = costos[s * NUM_DECISIONES + a];
-    
+            g_costos->data[s][a] = costos[its++];
+
     // 3. Crear y llenar matriz de políticas
     g_politicas = create_matrix(NUM_POLITICAS, NUM_ESTADOS);
     if (!g_politicas) goto error;
+    its = 0;
     for (int p = 0; p < NUM_POLITICAS; p++)
         for (int s = 0; s < NUM_ESTADOS; s++)
-            g_politicas->data[p][s] = (double)politicas[p * NUM_ESTADOS + s];
+            g_politicas->data[p][s] = (double)politicas[its++];
     
     
     g_initialized = true;

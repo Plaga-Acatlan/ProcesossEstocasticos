@@ -104,6 +104,9 @@ int find_index_in_array(const int* arr, int size, int value);
 // A es la matriz de coeficientes, b es el vector de términos independientes
 int gauss_jordan(Matrix *A, Vector *b, Vector *x);
 
+Vector* multiply_matrix_vector(const Matrix *A, const Vector *x);
+
+bool is_vector_equals(const Vector *a, const Vector *b);
 
 const char* get_log_color(const char* level);
 bool terminal_supports_color(FILE* stream);

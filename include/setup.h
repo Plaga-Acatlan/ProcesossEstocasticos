@@ -11,6 +11,7 @@ extern Matrix3D *g_transiciones_3d;
 extern Vector *g_weights;
 extern Matrix *g_costos;
 extern Matrix *g_politicas;
+//extern Matrix *g_accesibles;
 
 // PARÁMETROS DE CONFIGURACIÓN GLOBAL
 extern int NUM_ESTADOS;

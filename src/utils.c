@@ -255,3 +255,35 @@ const char* get_log_color(const char* level) {
     
     return COLOR_RESET;  // Por defecto, sin color
 }
+
+Vector* multiply_matrix_vector(const Matrix *A, const Vector *x) {
+    if (A == NULL || x == NULL) {
+        log_error("multiply_matrix_vector", "Punteros NULL recibidos", -1);
+        return NULL;
+    }
+    if (A->cols != x->size) {
+        log_error("multiply_matrix_vector", "Dimensiones incompatibles", -1);
+        return NULL;
+    }
+
+    Vector *y = create_vector(A->rows);
+    if (y == NULL) return NULL;
+
+    for (int i = 0; i < A->rows; i++) {
+        double sum = 0.0;
+        for (int j = 0; j < A->cols; j++) {
+            sum += A->data[i][j] * x->data[j];
+        }
+        y->data[i] = sum;
+    }
+
+    return y;
+}
+
+bool is_vector_equals(const Vector *a, const Vector *b) {
+    if (!a || !b || a->size != b->size || !a->data || !b->data) return false;
+    for (int i = 0; i < a->size; i++) {
+        if (abs_double(a->data[i] - b->data[i]) > 1e-9) return false;
+    }
+    return true;
+}
