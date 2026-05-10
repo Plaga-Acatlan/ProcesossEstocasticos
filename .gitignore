@@ -59,6 +59,7 @@ dkms.conf
 venv/
 env/
 .venv_old/
+.vscode/
 
 # Python
 __pycache__/
