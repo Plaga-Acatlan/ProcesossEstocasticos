@@ -53,21 +53,27 @@ Matrix *Mejoramiento_Politicas(int politica_inicial){
         // Actualizar V con la solución obtenida
         Vector *G = create_vector(1);
         bool policy_changed = false;
-        for(int i=0; i < NUM_DECISIONES; i++){
-            for(int j=0; j < NUM_DECISIONES; j++){
+        for(int i=0; i < NUM_ESTADOS; i++){
+            for(int k=0; k < NUM_DECISIONES; k++){
                 if(policy_changed){
                     G->size++;
                     G->data = (double*)realloc(G->data, G->size * sizeof(double));
                     policy_changed = false;
                 } 
-                if(g_transiciones_3d->data[j][i][0] < 0) continue; 
-                // Si hay transición desde estado i con decisión j
-                double costo_ij = g_costos->data[i][j];
+                if(g_transiciones_3d->data[k][i][0] < 0) continue; 
+                // Si hay transición desde estado i con decisión k
+                double costo_ik = g_costos->data[i][k];
                 double valor_ij = 0;
-                    for(int s=0; s < NUM_ESTADOS; s++){
+                    for(int j=0; j < NUM_ESTADOS; j++){
+                        valor_ij += g_transiciones_3d->data[k][i][j] * V_last->data[j];
                     }
+                G->data[G->size-1] = costo_ik + valor_ij - solution->data[i]; // C[i][k] + sum(P[i][j][k] * V_last[j])
             }
         }
+        printf("Resultados son:\n");
+        print_vector(G);
+    
+        // Verificar si hay mejora en la política
     
         
 

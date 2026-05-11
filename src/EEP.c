@@ -8,7 +8,7 @@ Matrix *create_political_matrix(int politica_index) {
 
     Matrix *out;
     int rows = NUM_ESTADOS;
-    int cols = NUM_DECISIONES;
+    int cols = NUM_ESTADOS;
     out = create_matrix(rows, cols);
     if (!out) {
         log_error("EEP_calcular_transiciones", "Fallo de memoria al crear matriz de salida", -1);
@@ -51,7 +51,7 @@ Matrix *solve_eep(){
             free_matrix(out);
             return NULL;
         }
-        FOREACH_INDEX(i, NUM_DECISIONES){
+        FOREACH_INDEX(i, NUM_ESTADOS){
             FOREACH_INDEX(j, NUM_ESTADOS){
                 if(!i) A->data[i][j] = 1.0;
                 else A->data[i][j] = (i == j) ? mat_politica->data[j][i] - 1.0: mat_politica->data[j][i];
@@ -71,7 +71,7 @@ Matrix *solve_eep(){
         FOREACH_INDEX(i, NUM_ESTADOS){ 
             int politica_decision = g_politicas->data[p][i];
             out->data[p][i]= x->data[i];
-            out->data[p][NUM_DECISIONES] += x->data[i] * g_costos->data[j++][politica_decision - 1];
+            out->data[p][NUM_ESTADOS] += x->data[i] * g_costos->data[j++][politica_decision - 1];
         }
         free_matrix(mat_politica);
         free_matrix(A); free_vector(b); free_vector(x);

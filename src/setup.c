@@ -50,12 +50,6 @@ bool is_setup_initialized(void) {
     return g_initialized;
 }
 
-int find_index(const int *array) {
-    for(int i = 0; i<NUM_POLITICAS; i++){
-        if(array[i] == 0) return i;
-    }
-}
-
 int set_configuration(int num_estados, int num_politicas, int num_decisiones, const char *tipo) {
     if (num_estados <= 0 || num_politicas <= 0 || num_decisiones <= 0 || !tipo) {
         log_error("set_configuration", "Parámetros inválidos recibidos", -1);
