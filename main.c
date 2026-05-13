@@ -7,6 +7,7 @@ void load_default_data() {
     int decisiones = 3;
     int politicas = 6;
     char tipo[4] = "min";
+    free_global_matrices();
 
     set_configuration(estados, politicas, decisiones, tipo);
     double mis_transiciones[] = {
@@ -53,7 +54,7 @@ int main() {
     }
     //init_global_matrices();
     load_default_data();
-    Matrix *resultados = Mejoramiento_Politicas(1);
+    Matrix *resultados = solve_eep();
     print_matrix(resultados);
 
     free_global_matrices();

@@ -12,7 +12,6 @@ void assert_not_null(void* ptr, const char* msg, const char* file, int line) {
     }
 }
 
-
 // UTILIDADES MATEMÁTICAS
 double abs_double(double value) {
     return value < 0 ? -value : value;
@@ -43,7 +42,6 @@ void clear_input_buffer(void) {
     int c;
     while ((c = getchar()) != '\n' && c != EOF);
 }
-
 
 // LOGGING Y DEBUGGING
 void log_message(const char* level, const char* format, ...) {
@@ -96,7 +94,6 @@ void print_separator(char char_char, int width) {
 }
 
 // UTILIDADES DE TIEMPO
-
 char* get_timestamp(char* buffer, size_t buffer_size) {
     if (!buffer || buffer_size < 20) return NULL;
     
@@ -126,7 +123,6 @@ double end_execution_timer(const clock_t* start_time) {
 }
 
 // UTILIDADES PARA ARRAYS/COLECCIONES
-
 void swap_doubles(double* a, double* b) {
     if (!a || !b) return;
     double temp = *a;

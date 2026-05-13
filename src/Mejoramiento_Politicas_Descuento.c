@@ -1,6 +1,10 @@
 #include "Mejoramiento_Politicas.h"
 
-Matrix *Mejoramiento_Politicas(int politica_inicial){
+double set_factor(int tasa){
+    return 1.0/(1+tasa);
+}
+
+Matrix *MPD(int politica_inicial, double factor){
     politica_inicial--;
     Matrix *iteraciones = create_matrix(1, NUM_ESTADOS);
     Vector *V = create_vector(NUM_ESTADOS);
@@ -26,7 +30,7 @@ Matrix *Mejoramiento_Politicas(int politica_inicial){
             int k = V_last->data[i]-1; // Política actual para el estado i
             
             // Sistema a resolver:
-            // V[i] = C[i][k] + sum(P[i][j][k] * V_last[j]) para j=1 a NUM_ESTADOS
+            // V[i] = C[i][k] + a*sum(P[k][i][j] * V_last[j])
             
             b->data[i] = g_costos->data[i][k]; // C[i][k]
             for(int j = 0; j < NUM_ESTADOS; j++){
@@ -47,7 +51,6 @@ Matrix *Mejoramiento_Politicas(int politica_inicial){
         gauss_jordan(A, b, solution);
         
         // Actualizar V con la solución obtenida
-        bool maximizar = (strcmp(TIPO,"max")==0) ? true : false;
         for(int i=0; i < NUM_ESTADOS; i++){
             double value = DBL_MAX; 
             int k_index = -1;
@@ -60,7 +63,7 @@ Matrix *Mejoramiento_Politicas(int politica_inicial){
                         valor_ij += g_transiciones_3d->data[k][i][j] * solution->data[j];
                     }
                 valor_ij += costo_ik - solution->data[i]; // C[i][k] + sum(P[i][j][k] * V_last[j]) 
-                if ((!maximizar && valor_ij<value) || (maximizar && valor_ij>value)) {
+                if (valor_ij<value){
                     value = valor_ij;
                     k_index = k+1;
                 }

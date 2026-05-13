@@ -78,3 +78,19 @@ Matrix *solve_eep(){
     }
     return out; 
 }
+
+int return_optimal(Matrix *EEP_Solution){
+    int index=0; double costo = DBL_MAX;
+    bool maximizar = false;
+    if (strcmp(TIPO, "max") == 0) { costo *= -1; maximizar = true;}
+
+    FOREACH_INDEX(i, EEP_Solution->rows){
+        double costo_politica = EEP_Solution->data[i][NUM_ESTADOS];
+        if ((maximizar && costo_politica>costo) || (!maximizar && costo_politica<costo)) {
+            index = i;
+            costo = EEP_Solution->data[i][NUM_ESTADOS];
+        }
+    }
+
+    return index+1;
+}
