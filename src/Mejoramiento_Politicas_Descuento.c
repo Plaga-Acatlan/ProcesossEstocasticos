@@ -43,7 +43,6 @@ Matrix *MPD(int politica_inicial, double factor){
         gauss_jordan(A, b, solution);
         
         // Actualizar V con la solución obtenida
-        bool maximizar = (strcmp(TIPO,"max")==0) ? true : false;
         for(int i=0; i < NUM_ESTADOS; i++){
             double value = (maximizar) ? DBL_MIN : DBL_MAX; 
             int k_index = -1;

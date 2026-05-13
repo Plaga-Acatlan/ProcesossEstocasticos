@@ -54,7 +54,7 @@ int main() {
     }
     //init_global_matrices();
     load_default_data();
-    Matrix *resultados = MPD(2,0.9);
+    Matrix *resultados = AS(10,2,1);
     print_matrix(resultados);
 
     free_global_matrices();

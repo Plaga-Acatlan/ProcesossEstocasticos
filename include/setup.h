@@ -18,6 +18,7 @@ extern int NUM_ESTADOS;
 extern int NUM_POLITICAS;
 extern int NUM_DECISIONES;
 extern char TIPO[4];
+extern bool maximizar;
 
 // FUNCIONES PÚBLICAS DE SETUP
 // Configura los parámetros del sistema.

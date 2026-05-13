@@ -47,7 +47,6 @@ Matrix *Mejoramiento_Politicas(int politica_inicial){
         gauss_jordan(A, b, solution);
         
         // Actualizar V con la solución obtenida
-        bool maximizar = (strcmp(TIPO,"max")==0) ? true : false;
         for(int i=0; i < NUM_ESTADOS; i++){
             double value = (maximizar) ? DBL_MIN : DBL_MAX; 
             int k_index = -1;
@@ -60,7 +59,7 @@ Matrix *Mejoramiento_Politicas(int politica_inicial){
                         valor_ij += g_transiciones_3d->data[k][i][j] * solution->data[j];
                     }
                 valor_ij += costo_ik - solution->data[i]; // C[i][k] + sum(P[i][j][k] * V_last[j]) 
-                printf("Para la i=%d, con k=%d se tiene que el costo es Cij=%.4f\n",i,k+1,valor_ij);
+                //printf("Para la i=%d, con k=%d se tiene que el costo es Cij=%.4f\n",i,k+1,valor_ij);
                 if ((!maximizar && valor_ij<value) || (maximizar && valor_ij>value)) {
                     value = valor_ij;
                     k_index = k+1;

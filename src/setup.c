@@ -18,6 +18,7 @@ int NUM_ESTADOS = 2;
 int NUM_POLITICAS = 4;
 int NUM_DECISIONES = 2;
 char TIPO[4] = "min";
+bool maximizar = false;
 
 
 // Datos internos por defecto
@@ -124,6 +125,7 @@ void init_global_matrices(void) {
     }
 
     g_initialized = true;
+    maximizar = (strcmp(TIPO,"max")==0) ? true : false;
     log_message("INFO", "Inicialización completada: E=%d, D=%d, P=%d", 
                 NUM_ESTADOS, NUM_DECISIONES, NUM_POLITICAS);
     return;
@@ -174,6 +176,7 @@ void init_with_custom_data(
     
     g_initialized = true;
     log_message("INFO", "Inicialización personalizada completada");
+    maximizar = (strcmp(TIPO,"max")==0) ? true : false;
     return;
     
 error:

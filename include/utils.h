@@ -115,6 +115,7 @@ bool terminal_supports_color(FILE* stream);
 #define FOREACH_INDEX(i, n) for (size_t i = 0; i < (size_t)(n); ++i)
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 #define UNUSED(x) (void)(x)
+#define max(a,b) (((a) > (b)) ? (a) : (b))
 
 // Para branch prediction hints 
 #ifndef likely
