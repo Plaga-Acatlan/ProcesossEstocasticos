@@ -1,4 +1,4 @@
-#include "Mejoramiento_Politicas.h"
+#include "Mejoramiento_Politicas_Descuento.h"
 
 double set_factor(int tasa){
     return 1.0/(1+tasa);
@@ -18,41 +18,34 @@ Matrix *MPD(int politica_inicial, double factor){
     
     while(!is_vector_equals(V, V_last)){
         // Guardar iteración anterior
-        Matrix *A = create_matrix(NUM_ESTADOS+1, NUM_ESTADOS+1);
-        Vector *b = create_vector(NUM_ESTADOS+1);
+        Matrix *A = create_matrix(NUM_ESTADOS, NUM_ESTADOS);
+        Vector *b = create_vector(NUM_ESTADOS);
 
         FOREACH_INDEX(i, NUM_ESTADOS){
             V_last->data[i] = V->data[i];
             V->data[i] = 0;
         }
 
-        for(int i=0;i < NUM_ESTADOS; i++) {
+        for (int i=0;i < NUM_ESTADOS; i++) {
             int k = V_last->data[i]-1; // Política actual para el estado i
             
             // Sistema a resolver:
             // V[i] = C[i][k] + a*sum(P[k][i][j] * V_last[j])
             
             b->data[i] = g_costos->data[i][k]; // C[i][k]
-            for(int j = 0; j < NUM_ESTADOS; j++){
-                if(j==NUM_ESTADOS-1) A->data[i][j] = 0; 
-                else A->data[i][j] = (i == j) ? 1-g_transiciones_3d->data[k][i][j] : -g_transiciones_3d->data[k][i][j]; // Coeficientes para V[j]
+            for (int j = 0; j < NUM_ESTADOS; j++){
+                A->data[i][j] = - factor * g_transiciones_3d->data[k][i][j]; // Coeficientes para V[j]
+                if (j==i) A->data[i][j] += 1;
             }
-            
-            A->data[i][NUM_ESTADOS] = 1;
         }
         
-        for(int j=0; j < NUM_ESTADOS+1; j++){
-            A->data[NUM_ESTADOS][j] = 0; // Restricción de suma de probabilidades
-        }
-        A->data[NUM_ESTADOS][NUM_ESTADOS-1] = 1;
-        b->data[NUM_ESTADOS] = 0;
-
-        Vector *solution= create_vector(NUM_ESTADOS+1);
+        Vector *solution= create_vector(NUM_ESTADOS);
         gauss_jordan(A, b, solution);
         
         // Actualizar V con la solución obtenida
+        bool maximizar = (strcmp(TIPO,"max")==0) ? true : false;
         for(int i=0; i < NUM_ESTADOS; i++){
-            double value = DBL_MAX; 
+            double value = (maximizar) ? DBL_MIN : DBL_MAX; 
             int k_index = -1;
             for(int k=0; k < NUM_DECISIONES; k++){
                 if(g_transiciones_3d->data[k][i][0] < 0) continue; 
@@ -60,10 +53,10 @@ Matrix *MPD(int politica_inicial, double factor){
                 double costo_ik = g_costos->data[i][k];
                 double valor_ij = 0;
                     for(int j=0; j < NUM_ESTADOS; j++){
-                        valor_ij += g_transiciones_3d->data[k][i][j] * solution->data[j];
+                        valor_ij += factor * g_transiciones_3d->data[k][i][j] * solution->data[j];
                     }
-                valor_ij += costo_ik - solution->data[i]; // C[i][k] + sum(P[i][j][k] * V_last[j]) 
-                if (valor_ij<value){
+                valor_ij += costo_ik; // C[i][k] + sum(P[i][j][k] * V_last[j]) 
+                if ((!maximizar && valor_ij<value) || (maximizar && valor_ij>value)) {
                     value = valor_ij;
                     k_index = k+1;
                 }
@@ -95,10 +88,6 @@ Matrix *MPD(int politica_inicial, double factor){
         free_matrix(A);
         free_vector(b);
         free_vector(solution);
-    }
-    
-    FOREACH_INDEX(i, NUM_ESTADOS){
-        iteraciones->data[iteracion_count][i] = V->data[i];
     }
     
     free_vector(V);

@@ -22,7 +22,7 @@ void load_default_data() {
         0.0, 1.0, 0.0, 0.0,
         -1.0, -1.0, -1.0, -1.0,
         // Decisión 2
-        0.0, 0.0, 0.0, 0.0,
+        -1.0, -1.0, -1.0, -1.0,
         1.0, 0.0, 0.0, 0.0,
         1.0, 0.0, 0.0, 0.0,
         1.0, 0.0, 0.0, 0.0
@@ -54,7 +54,7 @@ int main() {
     }
     //init_global_matrices();
     load_default_data();
-    Matrix *resultados = solve_eep();
+    Matrix *resultados = MPD(2,0.9);
     print_matrix(resultados);
 
     free_global_matrices();
