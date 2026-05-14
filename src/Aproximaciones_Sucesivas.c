@@ -68,6 +68,7 @@ Matrix *AS(double tolerancia, int max_iteraciones, double alpha){
 
     free_vector(V);
     free_vector(Costos);
+    free_vector(Costos_anterior);
 
     return iteraciones;
 }
