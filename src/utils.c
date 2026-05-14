@@ -58,7 +58,7 @@ void log_message(const char* level, const char* format, ...) {
     
     va_end(args);
     
-    if (terminal_supports_color(stdout)) {
+    if (true || terminal_supports_color(stdout)) {
         const char* color = get_log_color(level);
         fprintf(stdout, "%s[%s] [%s] %s%s\n", 
                 color, timestamp, level, message, COLOR_RESET);
@@ -220,7 +220,7 @@ int gauss_jordan(Matrix *A, Vector *b, Vector *x) {
     free_matrix(aug);
     return 0;
 }
-
+/*
 bool terminal_supports_color(FILE* stream) {
     if (!stream) return false;
     if (getenv("NO_COLOR") != NULL) return false;
@@ -232,6 +232,7 @@ bool terminal_supports_color(FILE* stream) {
         return isatty(fileno(stream));
     #endif
 }
+*/
 
 const char* get_log_color(const char* level) {
     if (!level) return COLOR_RESET;
@@ -239,7 +240,7 @@ const char* get_log_color(const char* level) {
     if (strcmp(level, "ERROR") == 0) {
         return COLOR_RED;
     } else if (strcmp(level, "DEBUG") == 0) {
-        if (terminal_supports_color(stdout)) {
+        if (true || terminal_supports_color(stdout)) {
             return COLOR_ORANGE;
         }
         return COLOR_YELLOW;
