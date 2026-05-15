@@ -5,6 +5,7 @@
 #include "Mejoramiento_Politicas.h"
 #include "Mejoramiento_Politicas_Descuento.h"
 #include "Aproximaciones_Sucesivas.h"
+#include "Simplex.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

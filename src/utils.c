@@ -284,3 +284,16 @@ bool is_vector_equals(const Vector *a, const Vector *b) {
     }
     return true;
 }
+
+static const char* format_coefficient(double abs_coeff, char *temp_buf, size_t buf_size) {
+    if (is_approx_zero(abs_coeff)) {
+        snprintf(temp_buf, buf_size, "0");
+        return temp_buf;
+    }
+    if (fabs(abs_coeff - 1.0) < EPSILON) {
+        temp_buf[0] = '\0';  // Cadena vacía = omitir coeficiente
+        return temp_buf;
+    }
+    snprintf(temp_buf, buf_size, "%.4f*", abs_coeff);
+    return temp_buf;
+}

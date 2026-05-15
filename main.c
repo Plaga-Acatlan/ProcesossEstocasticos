@@ -29,10 +29,10 @@ void load_default_data() {
     };
 
     double mis_costos[] = {
-        0.0, 0.0, 0.0,
-        1000.0, 0.0, 6000.0,
+        0.0, DBL_MAX, DBL_MAX,
+        1000.0, DBL_MAX, 6000.0,
         3000.0, 4000.0, 6000.0,
-        0.0, 0.0, 6000.0
+        DBL_MAX, DBL_MAX, 6000.0
     };
 
     int mis_politicas[] = {
@@ -54,12 +54,15 @@ int main() {
     }
     //init_global_matrices();
     load_default_data();
-    Matrix *resultados = AS(10,2,1);
-    
-    print_matrix(resultados);
+    //Matrix *resultados = AS(10,2,1);
+    //print_matrix(resultados);
+
+    char *MPL = Create_MPL();
+    printf("Modelo MPL generado:\n%s\n", MPL);
+    free(MPL);
 
     free_global_matrices();
-    free_matrix(resultados);
+    //free_matrix(resultados);
 
     return 0;
 }
