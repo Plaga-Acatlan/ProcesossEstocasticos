@@ -73,20 +73,6 @@ char *CondicionNormalizacion(){
     return condicion;
 }
 
-const char* format_coefficient(double coeff, char *temp_buf, int buf_size) {
-    if (fabs(coeff) < EPSILON) return "0";
-    
-    if (fabs(coeff - 1.0) < EPSILON) {
-        return temp_buf;
-    }
-    if (fabs(coeff + 1.0) < EPSILON) {
-        snprintf(temp_buf, buf_size, "-");
-        return temp_buf;
-    }
-    
-    return temp_buf;
-}
-
 static int accumulate_term(Term *terms, int *term_count, int max_terms, 
                           int state, int decision, double coeff) {
     // Buscar si ya existe este término
@@ -128,7 +114,7 @@ int Make_Restiction(int state_idx, char *buffer, int buffer_size) {
     // 2. Negativos
     for (int k = 0; k < NUM_DECISIONES; k++) { 
         for (int j = 0; j < NUM_ESTADOS; j++) { 
-            double prob = g_transiciones_3d->data[k][state_idx][j];
+            double prob = g_transiciones_3d->data[k][j][state_idx];
             
             if (prob < 0) continue; 
             
@@ -138,46 +124,40 @@ int Make_Restiction(int state_idx, char *buffer, int buffer_size) {
     }
     
     // 3. String
-    size_t buffer_pos = 0;
-    bool is_first_term = true;
+    int pos = 0;
+    bool first_term = true;
 
-    for (int i = 0; i < term_count; i++) {
+    for (int t = 0; t < term_count; ++t) {
+        const Term *term = &terms[t];
+        double coeff = term->COEF;
         
-        // Datos del término actual
-        const Term *current_term = &terms[i];
-        const double coefficient = current_term->COEF;
-        const int state_index = current_term->EDO;
-        const int decision_index = current_term->DEC;
+        if (is_approx_zero(coeff)) continue;
         
-        if (is_approx_zero(coefficient)) {
-            continue;
+        // Signo y separador 
+        if (!first_term) {
+            int written = snprintf(buffer + pos, buffer_size - pos, " %c ", coeff > 0 ? '+' : '-');
+            if (written > 0 && pos + written < buffer_size) pos += written;
+        } else if (coeff < 0) {
+            int written = snprintf(buffer + pos, buffer_size - pos, "-");
+            if (written > 0 && pos + written < buffer_size) pos += written;
         }
         
-        // --- 1. Manejar signo y separadores ---
-        if (!is_first_term) {
-            buffer_pos += safe_snprintf_append(buffer, buffer_size, buffer_pos, 
-                                            " %c ", sign_char(coefficient));
-        } else if (coefficient < 0) {
-            buffer_pos += safe_snprintf_append(buffer, buffer_size, buffer_pos, "-");
+        // Coeficiente
+        double abs_coeff = abs_double(coeff);
+        if (!is_approx_zero(abs_coeff) && !is_approx_zero(abs_coeff - 1.0)) {
+            snprintf(coeff_buf, sizeof(coeff_buf), "%.4f*", abs_double(coeff));
+            int written = snprintf(buffer + pos, buffer_size - pos, "%s", coeff_buf);
+            if (written > 0 && pos + written < buffer_size) pos += written;
         }
         
-        // --- 2. Imprimir coeficiente ---
-        const char *coeff_formatted = format_coefficient(abs_double(coefficient), coeff_buf, sizeof(coeff_buf));
-        if (coeff_formatted[0] != '\0') {
-            buffer_pos += safe_snprintf_append(buffer, buffer_size, buffer_pos, "%s", coeff_formatted);
-        }
+        // y_{estado,decisión}
+        int written = snprintf(buffer + pos, buffer_size - pos, "y_{%d,%d}", 
+                              term->EDO, term->DEC + 1);
+        if (written > 0 && pos + written < buffer_size) pos += written;
         
-        // --- 3. Imprimir variable y_{estado,decisión} ---
-        buffer_pos += safe_snprintf_append(buffer, buffer_size, buffer_pos, 
-                                        "y_{%d,%d}", state_index, decision_index + 1);
-        
-        is_first_term = false; 
+        first_term = false;
     }
-
-    // --- 4. Cerrar ecuación ---
-    buffer_pos += safe_snprintf_append(buffer, buffer_size, buffer_pos, " = 0");
-
-    // Garantizar terminación nula (seguridad ante truncamiento)
+    pos += snprintf(buffer + pos, buffer_size - pos, " = 0");
     buffer[buffer_size - 1] = '\0';
     
     free(terms);

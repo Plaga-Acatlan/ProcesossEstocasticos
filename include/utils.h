@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <string.h>
 #include <math.h>
 #include <time.h>
 
@@ -111,7 +112,7 @@ bool is_vector_equals(const Vector *a, const Vector *b);
 const char* get_log_color(const char* level);
 bool terminal_supports_color(FILE* stream);
 
-static const char* format_coefficient(double abs_coeff, char *temp_buf, size_t buf_size)
+const char* format_coefficient(double abs_coeff, char *temp_buf, size_t buf_size);
 
 // === Macros de conveniencia ===
 #define FOREACH_INDEX(i, n) for (size_t i = 0; i < (size_t)(n); ++i)

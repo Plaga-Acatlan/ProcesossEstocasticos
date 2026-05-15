@@ -285,7 +285,7 @@ bool is_vector_equals(const Vector *a, const Vector *b) {
     return true;
 }
 
-static const char* format_coefficient(double abs_coeff, char *temp_buf, size_t buf_size) {
+const char* format_coefficient(double abs_coeff, char *temp_buf, size_t buf_size) {
     if (is_approx_zero(abs_coeff)) {
         snprintf(temp_buf, buf_size, "0");
         return temp_buf;
