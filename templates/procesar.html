@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadenas Markovianas de Decisión</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../static/css/styles.css">
+    <link rel="stylesheet" href="../static/css/procesar.css">
+</head>
+<body>
+
+<div class="container py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">Resumen de Datos</h2>
+    </div>
+
+    <!-- Panel de Resumen -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <!-- Configuración básica -->
+            <div class="row mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="mb-0">Configuración Básica</h5>
+                    <button class="btn btn-link p-0 edit-link" data-target="costos">Editar Configuración</button>
+                </div>
+                <div class="col-md-3">
+                    <div class="summary-item">
+                        <label class="text-muted small">Estados:</label>
+                        <div class="summary-value" id="summaryN">-</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="summary-item">
+                        <label class="text-muted small">Decisiones:</label>
+                        <div class="summary-value" id="summaryK">-</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="summary-item">
+                        <label class="text-muted small">Políticas:</label>
+                        <div class="summary-value" id="summaryP">-</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="summary-item">
+                        <label class="text-muted small">Tipo</label>
+                        <div class="summary-value" id="summaryTipo">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Matrices de Costos con scroll horizontal -->
+            <div class="mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="mb-0">Matriz de Costos</h5>
+                    <button class="btn btn-link p-0 edit-link" data-target="costos">Editar Matriz</button>
+                </div>
+                <div class="cost-matrix-scroll">
+                    <table class="table table-bordered table-sm text-center" id="costMatrixTable">
+                        <thead class="table-light"></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Políticas listadas horizontalmente -->
+            <div class="mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="mb-0">Políticas</h5>
+                    <button class="btn btn-link p-0 edit-link" data-target="politicas">Editar Políticas</button>
+                </div>
+                <div class="policies-horizontal" id="policiesList"></div>
+            </div>
+
+            <!-- Matrices de Transición (resumen) -->
+            <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="mb-0">Matrices de Transición</h5>
+                    <button class="btn btn-link p-0 edit-link" data-target="transiciones">Editar Transiciones</button>
+                </div>
+                <div class="alert alert-info py-2">
+                    <span id="transitionSummary">-</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Selección de Método -->
+    <h4 class="mb-3">Elegir el método de solución</h4>
+    <div class="methods-grid">
+        <a href="/EEP" class="method-card">
+            <div class="method-name">Enumeración Exhaustiva de Políticas</div>
+        </a>
+        <a href="/PL" class="method-card">
+            <div class="method-name">Programación Lineal</div>
+        </a>
+        <a href="/MP" class="method-card">
+            <div class="method-name">Mejoramiento de Políticas</div>
+        </a>
+        <a href="/MPD" class="method-card">
+            <div class="method-name">Mejoramiento con Descuento</div>
+        </a>
+        <a href="/AS" class="method-card">
+            <div class="method-name">Aproximaciones Sucesivas</div>
+        </a>
+    </div>
+
+    <div class="text-center mt-4">
+        <a href="/" class="btn btn-outline-secondary">← Volver al Inicio</a>
+    </div>
+</div>
+
+<script src="../static/js/procesar.js"></script>
+</body>
+</html>
