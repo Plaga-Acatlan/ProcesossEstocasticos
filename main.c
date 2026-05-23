@@ -57,8 +57,9 @@ int main() {
     //Matrix *resultados = AS(10,2,1);
     //print_matrix(resultados);
 
-    //char *MPL = Create_MPL();
-    //free(MPL);
+    char *MPL = Create_MPL();
+    printf("%s",MPL);
+    free(MPL);
 
     free_global_matrices();
     //free_matrix(resultados);

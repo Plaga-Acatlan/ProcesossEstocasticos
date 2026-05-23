@@ -38,6 +38,7 @@ typedef struct {
 Matrix3D* create_matrix3d(int depth, int *rows, int *cols);
 void free_matrix3d(Matrix3D *mat3d);
 void print_matrix3d(Matrix3D *mat3d);
+void free_string(char *ptr);
 
 int fill_matrix3d_from_array(Matrix3D *mat3d, const double *flat_data);
 int flatten_matrix3d(const Matrix3D *mat3d, double *output);

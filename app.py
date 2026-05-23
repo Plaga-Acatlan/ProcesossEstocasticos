@@ -1,6 +1,9 @@
 from flask import Flask, request, jsonify, render_template
 import ctypes
+import ctypes.util
 import os
+from scipy.optimize import linprog
+import re
 import requests
 import platform
 
@@ -9,6 +12,9 @@ app = Flask(__name__)
 # Configuración y Carga de C
 lib = None
 try:
+    lib = ctypes.CDLL(ctypes.util.find_library("c"))
+    lib.free.argtypes = [ctypes.c_void_p]
+
     _EXT_MAP = {"Windows": "dll", "Linux": "so", "Darwin": "dylib"}
     _SYSTEM = platform.system()
     _LIB_EXT = _EXT_MAP.get(_SYSTEM, "so")
@@ -49,7 +55,18 @@ try:
     lib.solve_eep.restype = ctypes.POINTER(CMatrix)
     lib.return_optimal.argtypes = [ctypes.POINTER(CMatrix)]
     lib.return_optimal.restype = ctypes.c_int
-    lib.Create_MPL.restype = ctypes.c_char_p
+
+    lib.FO.argtypes = []
+    lib.FO.restype = ctypes.c_void_p
+    lib.CondicionNormalizacion.argtypes = []
+    lib.CondicionNormalizacion.restype = ctypes.c_void_p
+    lib.Make_Restrictions.argtypes = []
+    lib.Make_Restrictions.restype = ctypes.c_void_p
+    lib.Create_MPL.argtypes = []
+    lib.Create_MPL.restype = ctypes.c_void_p
+
+    lib.free_string.argtypes = [ctypes.c_void_p]
+    lib.free_string.restype = None
 
     lib.Mejoramiento_Politicas.argtypes = [ctypes.c_int]
     lib.Mejoramiento_Politicas.restype = ctypes.POINTER(CMatrix)
@@ -115,11 +132,13 @@ def matrixC_to_py(ptr):
     return {"rows": rows, "cols": cols, "data": py_matrix}
 
 def stringC_to_py(ptr):
+    c_string = ctypes.cast(ptr, ctypes.c_char_p).value
+    modelo = c_string.decode("utf-8")
+    lib.free_string(ptr)
+
     if not ptr:
         return ""
-    text = ptr.decode('utf-8', errors='replace')
-    lib.free(ptr)
-    return text
+    return modelo
 
 # Rutas del sitio
 @app.route('/')
@@ -196,24 +215,74 @@ def programacion_lineal():
 
         # Ejecutar C
         ptr = lib.Create_MPL()
-        print(ptr)
+
+        if not ptr:
+            return jsonify({"status": "error", "message": "FO() returned NULL"}), 500
+
         modelo = stringC_to_py(ptr)
 
-        # Llamar a API
-        '''weather_info = "Clima no disponible."
-        try:
-            resp = requests.get(
-                "https://api.open-meteo.com/v1/forecast?latitude=19.43&longitude=-99.13&current_weather=true",
-                timeout=5
-            )
-            if resp.status_code == 200:
-                w = resp.json().get('current_weather', {})
-                weather_info = f"🌤️ CDMX: {w.get('temperature', 'N/A')}°C | 💨 Viento: {w.get('windspeed', 'N/A')} km/h"
-        except Exception:
-            pass
+        niveles = modelo.split("\n")
+        variables = {}
+        index = 0
+
         '''
-        return jsonify({"status": "ok", "model": modelo, "weather": ""})
+        Min z = cT * x
+        s.a.
+        A_eq * x == b_eq
+        '''
+        patron = re.compile(r'([+-]?\s*\d+(?:\.\d+)?)\s*y_{\d+,\d+}')
+        patron_variable = re.compile(r'y_{\d+,\d+}')
+        patron_restricciones = re.compile(r'([+-]?\s*\d+(?:\.\d+)?(?:e[+-]?\d+)?)\s*\*?\s*y_{(\d+),(\d+)}')
+
+        # Calcular todas variables en mapa
+        n = data["N"]
+        b = [.0] * n
+
+        for match in patron_variable.finditer(niveles[1]):
+            var = match.group(0)
+            if var not in variables:
+                variables[var] = index
+                index += 1
+
+        # Calcular FO
+        lado_der = niveles[0].split('=', 1)[-1]
+        coincidencias = patron.findall(lado_der)
+        C = [.0]*index
+        A = [[.0] * index for _ in range(n)]
+
+        for c in coincidencias:
+            C.append(float(c.replace(' ', '')) * (-1 if data["tipo"]=="max" else 1))
+
+        for i in range(1,n+1):
+            ecuacion = niveles[i]
+            left, right = ecuacion.split('=', 1)
+            try:
+                b[i-1] = float(right.strip())
+            except ValueError:
+                b[i-1] = 0.0
+            
+                
+            left_norm = re.sub(r'([+\-])\s*y_', r'\1 1y_', left)
+            left_norm = re.sub(r'^\s*y_', '1y_', left_norm)
+            for match in patron_restricciones.finditer(left_norm):
+                coef_str = match.group(1)
+                row_i = match.group(2)
+                col_i = match.group(3)
+
+                var_key = f"y_{{{row_i},{col_i}}}"
+
+                if var_key in variables:
+                    columna = variables[var_key] 
+                    coef = float(coef_str.replace(' ', ''))
+                    A[i-1][columna] = coef
+                else:
+                    print(f"⚠️ [DevStudy] {var_key} no aparece en la primera restricción. Se omite.")
+                
+        resultado = linprog(C, A_eq=A, b_eq=b, method='highs')
+        print(resultado)
+        return jsonify({"status": "ok", "model": modelo})
     except Exception as e:
+        print(f"💥 CRASH EN /PL: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
 

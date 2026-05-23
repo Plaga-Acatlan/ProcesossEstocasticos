@@ -92,7 +92,7 @@ function renderPolicies(state) {
         const chip = document.createElement('div');
         chip.className = 'policy-chip';
         chip.innerHTML = `
-            <strong>${pol.name || `P_${idx + 1}`}</strong>
+            <strong>${pol.name || `P<sub>${idx + 1}</sub>`}</strong>
             <span>[${pol.vector.join(', ')}]</span>
         `;
         container.appendChild(chip);
@@ -212,7 +212,7 @@ function buildFormHTML(method) {
     if (['MP', 'MPD'].includes(method)) {
         html += `<div class="form-group"><label>Política Inicial</label><select name="politica_inicial">`;
         state.politicas.forEach((p, i) => {
-            html += `<option value="${i}">P_${i} = [${p.vector.join(', ')}]</option>`;
+            html += `<option value="${i}">P<sub>${i}</sub> = (${p.vector.join(', ')})</option>`;
         });
         html += `</select></div>`;
     }
