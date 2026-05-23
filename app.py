@@ -312,19 +312,28 @@ def programacion_lineal():
             key = llaves[i]
             fila, col = map(int, key[3:-1].split(","))
             D.append(int(X[i] / sumaEstados[fila]))
-
+        P = [0]*(n)
+        i = 0
+        for d in D:
+            if d:
+                key = llaves[i]
+                l,r = map(int, key[3:-1].split(","))
+                P[l]=r
+            i+=1
+        lib.free_global_matrices()
         # Faltan resultados imprimir yik y convertir a Dik  
-        return jsonify({"status": "ok", "model": modelo, "yi": X, "Di": D})
+        return jsonify({"status": "ok", "model": modelo, "yi": X, "Di": D, "P":P})
     except Exception as e:
         print(f"💥 CRASH EN /PL: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
-
 def general_solver(c_func, data, *args):
     cargar_datos(data)
+    print("Ok, aqui:", *args)
     ptr = c_func(*args)
+    print("Pase lo critico")
     matrix = matrixC_to_py(ptr) 
-    lib.free_matrix(ptr)
+    lib.free_global_matrices()   
     return jsonify({"status": "ok", "matrix": matrix})
 
 @app.route('/MP', methods=['POST'])
@@ -332,7 +341,7 @@ def mejoramiento_politicas():
     try:
         data = request.get_json()
         pol_idx = int(data.get('politica_inicial', 0))
-        return general_solver(lib.Mejoramiento_Politicas, data, pol_idx)
+        return general_solver(lib.Mejoramiento_Politicas, data, pol_idx+1)
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
@@ -341,8 +350,8 @@ def mejoramiento_descuento():
     try:
         data = request.get_json()
         pol_idx = int(data.get('politica_inicial', 0))
-        factor = float(data.get('factor', 0.95))
-        return general_solver(lib.MPD, data, pol_idx, factor)
+        factor = float(data.get('factor', 1.0))
+        return general_solver(lib.MPD, data, pol_idx+1, factor)
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
@@ -356,8 +365,6 @@ def aproximaciones_sucesivas():
         return general_solver(lib.AS, data, tol, max_iter, alpha)
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
-
-
 
 if __name__ == '__main__':
     app.run(debug=True, host='127.0.0.1', port=5000)

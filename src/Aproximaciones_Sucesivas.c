@@ -3,7 +3,7 @@
 Matrix *AS(double tolerancia, int max_iteraciones, double alpha){
     int n = 1;
     double diferencia = DBL_MAX;
-    Matrix *iteraciones = create_matrix(1, NUM_ESTADOS);
+    Matrix *iteraciones = create_matrix(2, NUM_ESTADOS);
     Vector *V = create_vector(NUM_ESTADOS);
     Vector *Costos_anterior = create_vector(NUM_ESTADOS);
     Vector *Costos = create_vector(NUM_ESTADOS);
@@ -11,12 +11,13 @@ Matrix *AS(double tolerancia, int max_iteraciones, double alpha){
     FOREACH_INDEX(i, NUM_ESTADOS){
         Costos->data[i] = DBL_MAX;
         iteraciones->data[0][i] = 0;
+        iteraciones->data[1][i] = 0;
     }
     
-    while (n <= max_iteraciones && diferencia>tolerancia) {
-        diferencia = DBL_MIN;
+    while (n <= 2*max_iteraciones && diferencia>tolerancia) {
         for (int i = 0; i < NUM_ESTADOS; i++){
-            int index = -1; double value = (maximizar) ? DBL_MIN : DBL_MAX;
+            int index = -1; 
+            double value = (maximizar) ? DBL_MIN : DBL_MAX;
 
             for (int k=0; k < NUM_DECISIONES; k++){
                 if (g_transiciones_3d->data[k][i][0] < 0) continue;
@@ -44,26 +45,30 @@ Matrix *AS(double tolerancia, int max_iteraciones, double alpha){
 
         FOREACH_INDEX(i, NUM_ESTADOS) {
             iteraciones->data[n-1][i] = V->data[i];
+            iteraciones->data[n][i] = Costos->data[i];
             Costos_anterior->data[i] = Costos->data[i];
         }
 
-        if(diferencia <= tolerancia || n >= max_iteraciones){ 
+        if(diferencia <= tolerancia || n >= 2*max_iteraciones){ 
             break;
         }
 
         double **new_data = (double**)realloc(iteraciones->data, 
-                                              (iteraciones->rows + 1) * sizeof(double*));
+                                              (iteraciones->rows + 2) * sizeof(double*));
         if (!new_data) {
             log_error("iteraciones", "Fallo de memoria al expandir", -1);
             break;
         }
         iteraciones->data = new_data;
-        // Inicializar nueva fila
-        iteraciones->data[iteraciones->rows] = (double*)calloc(NUM_ESTADOS, sizeof(double));
-        iteraciones->rows++;
-        
-
-        n++;
+        for (int r = 0; r < 2; r++) {
+            iteraciones->data[iteraciones->rows + r] = (double*)calloc(NUM_ESTADOS, sizeof(double));
+            if (!iteraciones->data[iteraciones->rows + r]) {
+                log_error("iteraciones", "Fallo al inicializar fila", iteraciones->rows + r);
+                break;
+            }
+        }
+        iteraciones->rows+=2;
+        n+=2;
     }
 
     free_vector(V);
