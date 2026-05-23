@@ -245,14 +245,28 @@ def programacion_lineal():
                 index += 1
 
         # Calcular FO
-        lado_der = niveles[0].split('=', 1)[-1]
-        coincidencias = patron.findall(lado_der)
         C = [.0]*index
         A = [[.0] * index for _ in range(n)]
 
-        for c in coincidencias:
-            C.append(float(c.replace(' ', '')) * (-1 if data["tipo"]=="max" else 1))
+        ecuacion = niveles[0]
+        l, right = ecuacion.split("=",1)
+        right_norm = re.sub(r'([+\-])\s*y_', r'\1 1y_', right)
+        right_norm = re.sub(r'^\s*y_', '1y_', right_norm)
+        for match in patron_restricciones.finditer(right_norm):
+                coef_str = match.group(1)
+                row_i = match.group(2)
+                col_i = match.group(3)
 
+                var_key = f"y_{{{row_i},{col_i}}}"
+
+                if var_key in variables:
+                    columna = variables[var_key] 
+                    coef = float(coef_str.replace(' ', ''))
+                    C[columna] = coef
+                else:
+                    print(f"⚠️ [Simplex] {var_key} no aparece en la primera restricción. Se omite.")
+        
+        # Restricciones
         for i in range(1,n+1):
             ecuacion = niveles[i]
             left, right = ecuacion.split('=', 1)
@@ -276,11 +290,31 @@ def programacion_lineal():
                     coef = float(coef_str.replace(' ', ''))
                     A[i-1][columna] = coef
                 else:
-                    print(f"⚠️ [DevStudy] {var_key} no aparece en la primera restricción. Se omite.")
+                    print(f"⚠️ [Simplex] {var_key} no aparece en la primera restricción. Se omite.")
                 
         resultado = linprog(C, A_eq=A, b_eq=b, method='highs')
-        print(resultado)
-        return jsonify({"status": "ok", "model": modelo})
+
+        if not resultado.success:
+            print("No es posible calcular Simplex.")
+            return jsonify({"status": "error", "message": "No es posible calcular el método Simplex"}), 500
+        
+        X = [float(valor) for valor in resultado.x]
+        D = []
+        sumaEstados = [.0]*(n)
+
+        llaves = []
+        for key, value in variables.items():
+            fila, col = map(int, key[3:-1].split(","))
+            llaves.append(key)
+            sumaEstados[fila]+=X[value]
+        
+        for i in range(len(X)):
+            key = llaves[i]
+            fila, col = map(int, key[3:-1].split(","))
+            D.append(int(X[i] / sumaEstados[fila]))
+
+        # Faltan resultados imprimir yik y convertir a Dik  
+        return jsonify({"status": "ok", "model": modelo, "yi": X, "Di": D})
     except Exception as e:
         print(f"💥 CRASH EN /PL: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
