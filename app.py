@@ -321,8 +321,8 @@ def programacion_lineal():
                 P[l]=r
             i+=1
         lib.free_global_matrices()
-        # Faltan resultados imprimir yik y convertir a Dik  
-        return jsonify({"status": "ok", "model": modelo, "yi": X, "Di": D, "P":P})
+        # Faltan resultados imprimir yik y convertir a Dik
+        return jsonify({"status": "ok", "model": modelo, "llaves": llaves, "yi": X, "Di": D, "optimal_policy":P})
     except Exception as e:
         print(f"💥 CRASH EN /PL: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500

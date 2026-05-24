@@ -93,7 +93,7 @@ function renderPolicies(state) {
         chip.className = 'policy-chip';
         chip.innerHTML = `
             <strong>${pol.name || `P<sub>${idx + 1}</sub>`}</strong>
-            <span>[${pol.vector.join(', ')}]</span>
+            <span>(${pol.vector.join(', ')})</span>
         `;
         container.appendChild(chip);
     });
@@ -169,7 +169,7 @@ function openModal(method) {
     const title = document.getElementById('modal-title');
     const body = document.getElementById('modal-body');
     
-    title.textContent = `Parámetros: ${getMethodName(method)}`;
+    title.textContent = `Parámetros requeridos:`;
     body.innerHTML = buildFormHTML(method);
     
     modal.classList.remove('hidden');
@@ -204,6 +204,11 @@ function setupModalListeners() {
     });
 }
 
+const toSubscript = (num) => {
+    const map = {'0':'₀','1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉'};
+    return num.toString().split('').map(c => map[c] || c).join('');
+};
+
 function buildFormHTML(method) {
     const state = JSON.parse(localStorage.getItem(STORAGE_KEY));
     let html = `<form data-method="${method}">`;
@@ -212,14 +217,14 @@ function buildFormHTML(method) {
     if (['MP', 'MPD'].includes(method)) {
         html += `<div class="form-group"><label>Política Inicial</label><select name="politica_inicial">`;
         state.politicas.forEach((p, i) => {
-            html += `<option value="${i}">P<sub>${i}</sub> = (${p.vector.join(', ')})</option>`;
+            html += `<option value="${i}">P${toSubscript(i+1)} = (${p.vector.join(', ')})</option>`;
         });
         html += `</select></div>`;
     }
 
     // Factor Descuento (MPD)
     if (method === 'MPD') {
-        html += `<div class="form-group"><label>Factor (0-1)</label><input type="number" name="factor" value="0.95" step="0.01" min="0" max="1" required></div>`;
+        html += `<div class="form-group"><label>Factor (0-1)</label><input type="number" name="factor" value="1" step="0.01" min="0" max="1" required></div>`;
     }
 
     // Parámetros AS
@@ -235,12 +240,12 @@ function buildFormHTML(method) {
 
 
 function getMethodName(key) {
-    return { 'EEP':'Enumeración Exhaustiva', 'PL':'Programación Lineal', 'MP':'Mejoramiento de Políticas', 'MPD':'Mejoramiento con Descuento', 'AS':'Aproximaciones Sucesivas' }[key];
+    return { 'EEP':'Enumeración Exhaustiva de Políticas', 'PL':'Programación Lineal', 'MP':'Mejoramiento de Políticas', 'MPD':'Mejoramiento de Políticas con Descuento', 'AS':'Aproximaciones Sucesivas' }[key];
 }
 
 function renderResults(method, data) {
     const container = document.getElementById('results-panel');
-    container.innerHTML = `<h3 style="margin-bottom:1rem; border-bottom:1px solid; padding-bottom:0.5rem;">Resultados: ${getMethodName(method)}</h3>`;
+    container.innerHTML = `<h3 style="margin-bottom:1rem; border-bottom:1px solid; padding-bottom:0.5rem;">Método: ${getMethodName(method)}</h3>`;
 
     if (method === 'EEP' && data.optimal_policy) {
         const vecStr = data.optimal_policy.vector.join(', ');
@@ -259,7 +264,40 @@ function renderResults(method, data) {
                 </div>
             `;
     } else if (method === 'PL') {
-        container.innerHTML += `<div style="text-align:center;"><p>El modelo generado es:</p><pre style="background:#0f172a; padding:1rem; border-radius:8px; text-align:left; overflow:auto;">${data.model}</pre><div style="margin-top:1rem; padding:0.5rem 1rem; background:#065f46; border-radius:20px; display:inline-block;">📍 CDMX: ${data.weather}</div></div>`;
+        const vecStr = data.optimal_policy.join(', ');
+        const formatKey = (key, letra) => key.replace(/([a-zA-Z])_\{(\d+)\s*,\s*(\d+)\}/g, (_, l, i, k) => `${letra}<sub>${i}${k}</sub>`);
+        let variablesHTML = `<div style="padding: 0.6rem 0.8rem; border-radius: 6px; font-family: monospace; border-left: 3px solid #3b82f6;">`;
+        
+        data.yi.forEach((val, i) => {
+            const rawKey = data.llaves?.[i] || `y_${i},?`;
+            const displayVal = typeof val === 'number' ? val.toFixed(4) : val;
+            variablesHTML += `<span style="margin-right: 2em;">${formatKey(rawKey, "y")} = ${displayVal}</span>`;
+        })
+        variablesHTML += `</div>
+        <div style="padding: 0.6rem 0.8rem; border-radius: 6px; font-family: monospace; border-left: 3px solid #f59e0b;">
+        `
+        data.Di.forEach((val, i) => {
+            const rawKey = data.llaves?.[i] || `D_${i},?`;
+            const displayVal = typeof val === 'number' ? val.toFixed(4) : val;
+            variablesHTML += `<span style="margin-right: 2em;"> ${formatKey(rawKey, "D")} = ${displayVal}</span>`
+        })
+        variablesHTML += `</div>`
+
+        container.innerHTML += `<div style="text-align:center;">
+        <h4>El modelo generado es:</h4>
+        <pre style="font-size: 1.1rem; border-radius:8px; text-align:center; overflow:auto; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+            ${data.model.replace(/y_\{(\d+)\s*,\s*(\d+)\}/g, (m, row, col) => `y<sub>${row}${col}</sub>`).replace("y_{i,k}>=",`y<sub>ik</sub>≥` )}
+        </pre>
+        </div>
+
+        ${variablesHTML}
+        
+        <div style="margin-top: 1.5rem; padding: 1rem; background: #065f46; border-radius: 8px; color: white; text-align: center; border: 1px solid #10b981;">
+            <h4 style="margin:0;">La política óptima es: P = (${vecStr})</h4>
+        </div>
+        `;
+
+        
     } else {
         data.matrix.data.forEach((row, i) => {
             container.innerHTML += `<div style="padding:0.8rem; border-bottom:1px dashed #334155;"><strong>Iteración ${i}:</strong> [${row.map(v=>v.toFixed(4)).join(', ')}]</div>`;
