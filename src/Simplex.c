@@ -7,69 +7,99 @@ typedef struct {
 } Term;
 
 char *FO(){
-    char *fo = (char*)malloc(sizeof(char));
+    size_t capacity = 128; 
+    char *fo = (char*)malloc(capacity);
     if (!fo) {
         log_error("FO", "Fallo de memoria al asignar", -1);
         return NULL;
     }
+    fo[0] = '\0';
+    size_t len = 0;
 
-    bool counter = false;
+    bool counter = true;
 
     for(int i=0; i<g_costos->cols; i++){
         for(int j=0; j<g_costos->rows; j++){
-            if (g_costos->data[j][i] != DBL_MAX) {
-                char buffer[50];
-                if (g_costos->data[j][i] > 0) 
-                    (counter) ? snprintf(buffer, sizeof(buffer), " + %.2fy_{%d,%d}", g_costos->data[j][i], j, i+1) : 
-                    snprintf(buffer, sizeof(buffer), "%.2fy_{%d,%d}", g_costos->data[j][i], j, i+1);
-                else if(g_costos->data[j][i] < 0) 
-                    snprintf(buffer, sizeof(buffer), " - %.2fy_{%d,%d}", -g_costos->data[j][i], j, i+1);
+            double val = g_costos->data[j][i];
+            if(val == DBL_MAX) continue;
                 
-                int new_length = strlen(fo) + strlen(buffer) + 1;
-                char *new_fo = (char*)realloc(fo, new_length);
-                if (!new_fo) {
+            char buffer[64];
+            int escrito = 0;
+            
+            if (val > 0) 
+                escrito = snprintf(buffer, sizeof(buffer), 
+                    counter ? "%.2fy_{%d,%d}" : " + %.2fy_{%d,%d}", 
+                    val, j, i+1);
+            else if(val < 0) 
+                    escrito = snprintf(buffer, sizeof(buffer), " - %.2fy_{%d,%d}", -val, j, i+1);
+            else continue;
+            
+            counter = false;
+            if (len + escrito + 1 >= capacity) {
+                capacity <<= 1;
+                char *tmp = (char*)realloc(fo, capacity);
+                if (!tmp) {
                     log_error("FO", "Fallo de memoria al expandir", -1);
                     free(fo);
                     return NULL;
-                 }
-                fo = new_fo;
-                strcat(fo, buffer);
-                if (g_costos->data[j][i] != 0) counter = true;
+                }
+                fo = tmp;
             }
+
+            memcpy(fo + len, buffer, escrito + 1);
+            len += escrito;
         }
     }
+
     return fo;
 }
 
 char *CondicionNormalizacion(){
-    char *condicion = (char*)malloc(sizeof(char));
+    size_t capacity = 128;
+    char *condicion = (char*)malloc(capacity);
     if (!condicion) {
         log_error("CondicionNormalizacion", "Fallo de memoria al asignar", -1);
         return NULL;
     }
-
-    bool counter = false;
+    condicion[0] = '\0';
+    size_t len = 0;
+    bool counter = true;
 
     for(int i=0; i<NUM_ESTADOS; i++){
         for(int k=0; k<g_transiciones_3d->depth; k++){
-            char buffer[50];
             if (g_costos->data[i][k] == DBL_MAX) continue;
-            (counter) ? snprintf(buffer, sizeof(buffer), " + y_{%d,%d}", i, k+1) : 
-            snprintf(buffer, sizeof(buffer), "y_{%d,%d}", i, k+1);
 
-            int new_length = strlen(condicion) + strlen(buffer) + 1;
-            char *new_condicion = (char*)realloc(condicion, new_length);
-            if (!new_condicion) {
-                log_error("CondicionNormalizacion", "Fallo de memoria al expandir", -1);
-                free(condicion);
-                return NULL;
+            char buffer[64];
+            int escrito = snprintf(buffer, sizeof(buffer),
+                counter ? "y_{%d,%d}" : " + y_{%d,%d}", i, k + 1);
+
+            if (len + escrito + 5 >= capacity){
+                capacity<<=1;
+                char *tmp = (char*)realloc(condicion, capacity);
+                if (!tmp) {
+                    log_error("CondicionNormalizacion", "Fallo de memoria al expandir", -1);
+                    free(condicion);
+                    return NULL;
                 }
-            condicion = new_condicion;
-            strcat(condicion, buffer);
-            counter = true;
+                condicion = tmp;
+            }
+
+            memcpy(condicion + len, buffer, escrito + 1);
+            len += escrito;
+            counter = false;
         }
     }
-    strcat(condicion, " = 1");
+    if (len + 4 >= capacity) {
+        capacity += 10;
+        char *tmp = (char*)realloc(condicion, capacity);
+        if (!tmp) {
+            log_error("CondicionNormalizacion", "Fallo de memoria al expandir (final)", -1);
+            free(condicion);
+            return NULL;
+        }
+        condicion = tmp;
+    }
+    strcpy(condicion + len, " = 1");
     return condicion;
 }
 
@@ -137,6 +167,7 @@ int Make_Restiction(int state_idx, char *buffer, int buffer_size) {
         if (!first_term) {
             int written = snprintf(buffer + pos, buffer_size - pos, " %c ", coeff > 0 ? '+' : '-');
             if (written > 0 && pos + written < buffer_size) pos += written;
+            else { buffer[buffer_size-1]='\0'; break; }
         } else if (coeff < 0) {
             int written = snprintf(buffer + pos, buffer_size - pos, "-");
             if (written > 0 && pos + written < buffer_size) pos += written;
@@ -145,9 +176,10 @@ int Make_Restiction(int state_idx, char *buffer, int buffer_size) {
         // Coeficiente
         double abs_coeff = abs_double(coeff);
         if (!is_approx_zero(abs_coeff) && !is_approx_zero(abs_coeff - 1.0)) {
-            snprintf(coeff_buf, sizeof(coeff_buf), "%.4f*", abs_double(coeff));
+            snprintf(coeff_buf, sizeof(coeff_buf), "%.4f", abs_double(coeff));
             int written = snprintf(buffer + pos, buffer_size - pos, "%s", coeff_buf);
             if (written > 0 && pos + written < buffer_size) pos += written;
+            else { buffer[buffer_size-1]='\0'; break; }
         }
         
         // y_{estado,decisión}
@@ -157,7 +189,10 @@ int Make_Restiction(int state_idx, char *buffer, int buffer_size) {
         
         first_term = false;
     }
-    pos += snprintf(buffer + pos, buffer_size - pos, " = 0");
+    int written = snprintf(buffer + pos, buffer_size - pos, " = 0");
+    if (written > 0 && written < buffer_size - pos) {
+        pos += written;
+    }
     buffer[buffer_size - 1] = '\0';
     
     free(terms);
@@ -189,19 +224,40 @@ char *Make_Restrictions() {
             }
             result = new_result;
         }
-        actual += snprintf(result + actual, capacity - actual, 
-                          "%s\n", temp_buf);
+        int written = snprintf(result + actual, capacity - actual, "%s\n", temp_buf);
+        if (written > 0 && written < capacity - actual) {
+            actual += written;
+        } else {
+            // Buffer lleno, salir para evitar overflow
+            result[capacity - 1] = '\0';
+            break;
+        }
     }
     
     return result;
 }
 
 char *Create_MPL(){
+
+    if (!g_costos || !g_costos->data || !g_transiciones_3d || !g_transiciones_3d->data) {
+        fprintf(stderr, "❌ ERROR: Globales no inicializadas. g_costos=%p, g_transiciones_3d=%p\n", 
+                (void*)g_costos, (void*)g_transiciones_3d);
+        return NULL;
+    }
+    
     char *fo = FO();
     char *condicion = CondicionNormalizacion();
     char *restricciones = Make_Restrictions();
     
-    int total_length = strlen(fo) + strlen(condicion) + strlen(restricciones) + 22;
+    if (!fo || !condicion || !restricciones) {
+        log_error("Create_MPL", "Una de las funciones auxiliares retornó NULL", -1);
+        if (fo) free(fo);
+        if (condicion) free(condicion);
+        if (restricciones) free(restricciones);
+        return NULL;
+    }
+
+    int total_length = strlen(fo) + strlen(condicion) + strlen(restricciones) + 256;
     char *full_output = (char*)malloc(total_length);
     if (!full_output) {
         log_error("Call", "Fallo de memoria al asignar", -1);

@@ -29,6 +29,7 @@ Matrix *solve_eep(){
         log_error("solve_eep", "Punteros de entrada NULL", -1);
         return NULL;
     }
+    
     Matrix *out = create_matrix(NUM_POLITICAS, NUM_ESTADOS + 1);
     if (!out) {
         log_error("solve_eep", "Fallo de memoria al crear matriz 3D de salida", -1);
@@ -76,6 +77,7 @@ Matrix *solve_eep(){
         free_matrix(mat_politica);
         free_matrix(A); free_vector(b); free_vector(x);
     }
+    //print_matrix(out);
     return out; 
 }
 

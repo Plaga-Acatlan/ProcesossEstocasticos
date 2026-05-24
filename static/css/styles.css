@@ -108,3 +108,58 @@ body {
 .card-header h4 {
     font-weight: 600;
 }
+
+/* Formulario */
+
+#modal-body .form-group {
+    margin-bottom: 1rem;
+    color: #000;
+}
+
+#modal-body label {
+    display: block;
+    margin-bottom: 0.4rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #000;
+}
+
+#modal-body input,
+#modal-body select {
+    width: 100%;
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #475569;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+}
+
+#modal-body input:focus,
+#modal-body select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+}
+
+#modal-body .btn-submit {
+    width: 100%;
+    padding: 0.75rem;
+    margin-top: 0.5rem;
+    background: #3b82f6;
+    color: white;
+    font-weight: 600;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    font-size: 1rem;
+}
+
+#modal-body .btn-submit:hover {
+    background: #2563eb;
+}
+
+#modal-body .btn-submit:active {
+    transform: scale(0.98);
+}

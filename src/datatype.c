@@ -222,3 +222,14 @@ bool is_valid_matrix(const Matrix *mat) {
     }
     return true;
 }
+
+
+void free_string(char *ptr) {
+    if (ptr) {
+        free(ptr);
+        fprintf(stderr, "[C] ✅ Memoria liberada correctamente\n");
+        fflush(stderr);
+    } else {
+        fprintf(stderr, "[C] ⚠️ free_string recibió puntero NULL\n");
+    }
+}

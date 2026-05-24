@@ -1,21 +1,29 @@
 const STORAGE_KEY = 'mdp_wizard_state';
+const METODOS_ESPECIALES = ['MP', 'MPD', 'AS'];
 
 document.addEventListener('DOMContentLoaded', () => {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+        window.location.href = '/';
+        return;
+    }
+
     loadAndDisplayData();
+    setupMethodButtons();
+    setupModalListeners();
     setupEditLinks();
 });
 
 function loadAndDisplayData() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-        alert('⚠️ No hay datos guardados. Redirigiendo...');
         window.location.href = '/';
         return;
     }
 
     try {
         const state = JSON.parse(raw);
-        
+        console.log('📋 [DATA] Estado:', { N: state.N, K: state.K, P: state.P, policies: state.politicas.length });
         // Config básica
         document.getElementById('summaryN').textContent = state.N || '-';
         document.getElementById('summaryK').textContent = state.K || '-';
@@ -25,10 +33,8 @@ function loadAndDisplayData() {
 
         // Matriz de costos
         renderCostMatrix(state);
-
         // Políticas
         renderPolicies(state);
-
         // Resumen de transiciones
         document.getElementById('transitionSummary').textContent = 
             `${state.K || 0} matriz${(state.K || 0) !== 1 ? 'es' : 's'} de ${state.N || 0}x${state.N || 0}`;
@@ -41,16 +47,17 @@ function loadAndDisplayData() {
 
 function renderCostMatrix(state) {
     const table = document.getElementById('costMatrixTable');
+    if (!table) { console.warn('⚠️ [DOM] #costMatrixTable no existe'); return; }
     const thead = table.querySelector('thead');
     const tbody = table.querySelector('tbody');
     
     thead.innerHTML = '';
     tbody.innerHTML = '';
 
-    if (!state.costMatrix || !state.K || !state.N) return;
+    if (!state.costos || !state.K || !state.N) return;
 
     // Header
-    let headerRow = '<tr><th>Estado \\ Decisión</th>';
+    let headerRow = '<tr><th>Edo. \\ Dec.</th>';
     for (let k = 0; k < state.K; k++) {
         headerRow += `<th>D${k + 1}</th>`;
     }
@@ -61,7 +68,7 @@ function renderCostMatrix(state) {
     for (let i = 0; i < state.N; i++) {
         let row = `<tr><td><strong>E${i}</strong></td>`;
         for (let k = 0; k < state.K; k++) {
-            const val = state.costMatrix[i][k];
+            const val = state.costos[i][k];
             const display = (val === '' || val === null || val === undefined) ? '-' : 
                            (typeof val === 'number' && val > 1e100) ? '∞' : val;
             row += `<td>${display}</td>`;
@@ -73,19 +80,20 @@ function renderCostMatrix(state) {
 
 function renderPolicies(state) {
     const container = document.getElementById('policiesList');
+    if (!container) { console.warn('⚠️ [DOM] #policiesList no existe'); return; }
     container.innerHTML = '';
 
-    if (!state.policies || state.policies.length === 0) {
+    if (!state.politicas || state.politicas.length === 0) {
         container.innerHTML = '<span class="text-muted">No hay políticas definidas</span>';
         return;
     }
 
-    state.policies.forEach((pol, idx) => {
+    state.politicas.forEach((pol, idx) => {
         const chip = document.createElement('div');
         chip.className = 'policy-chip';
         chip.innerHTML = `
-            <strong>${pol.name || `P_${idx + 1}`}</strong>
-            <span>[${pol.vector.join(', ')}]</span>
+            <strong>${pol.name || `P<sub>${idx + 1}</sub>`}</strong>
+            <span>(${pol.vector.join(', ')})</span>
         `;
         container.appendChild(chip);
     });
@@ -97,10 +105,8 @@ function setupEditLinks() {
             e.preventDefault();
             const target = this.dataset.target;
             
-            // Solo guardar a dónde ir, NO limpiar nada
             localStorage.setItem('mdp_edit_target', target);
             
-            // Redirigir
             window.location.href = '/';
         });
     });
@@ -109,4 +115,193 @@ function setupEditLinks() {
         localStorage.setItem('mdp_edit_target', 'config');
         window.location.href = '/';
     });
+}
+
+function setupMethodButtons() {
+    document.querySelectorAll('.method-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const method = btn.dataset.method;
+            console.log(`🖱️ [CLICK] Método: ${method} | ¿Requiere params?: ${METODOS_ESPECIALES.includes(method) ? 'SÍ → modal' : 'NO → auto'}`);
+            if (!METODOS_ESPECIALES.includes(method)) {
+                executeMethod(method, {}); 
+            } 
+            else {
+                openModal(method);
+            }
+        });
+    });
+}
+
+function executeMethod(method, userParams) {
+    const state = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    const payload = { ...state, ...userParams }; // Combina datos guardados + inputs del modal
+
+    console.log(`📡 [FETCH] POST /${method} | Payload keys:`, Object.keys(payload), '| Params extra:', Object.keys(userParams));
+    
+    const resultsPanel = document.getElementById('results-panel');
+    resultsPanel.classList.remove('hidden');
+    resultsPanel.innerHTML = `<div class="text-center py-4">
+        <div class="spinner-border text-primary"></div>
+        <p class="mt-2">Procesando en C...</p>
+    </div>`;
+
+    // Scroll suave hacia los resultados
+    resultsPanel.scrollIntoView({ behavior: 'smooth' });
+
+    fetch(`/${method}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'error') throw new Error(data.message);
+        renderResults(method, data);
+    })
+    .catch(err => {
+        console.error(err);
+        resultsPanel.innerHTML = `<div class="alert alert-danger" style="border:1px solid #ef4444; padding:1rem; border-radius:8px;">❌ ${err.message}</div>`;
+    });
+}
+
+function openModal(method) {
+    const modal = document.getElementById('modal-overlay');
+    const title = document.getElementById('modal-title');
+    const body = document.getElementById('modal-body');
+    
+    title.textContent = `Parámetros requeridos:`;
+    body.innerHTML = buildFormHTML(method);
+    
+    modal.classList.remove('hidden');
+}
+
+function closeModal() {
+    document.getElementById('modal-overlay').classList.add('hidden');
+}
+
+function setupModalListeners() {
+    // Botón X para cerrar
+    document.getElementById('btn-close-modal').addEventListener('click', closeModal);
+    
+    // Clic fuera del modal para cerrar
+    document.getElementById('modal-overlay').addEventListener('click', (e) => {
+        if (e.target.id === 'modal-overlay') closeModal();
+    });
+
+    // Listener del formulario DENTRO del modal (usando delegación de eventos)
+    document.getElementById('modal-overlay').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const method = form.dataset.method; // Guardamos el método en el form
+        const params = {};
+        for (let [key, value] of new FormData(form)) {
+            // Convierte a número si es válido
+            params[key] = (!isNaN(value) && value.trim() !== '') ? Number(value) : value;
+        }
+        
+        closeModal(); // Cierra el pop-up
+        executeMethod(method, params); // Ejecuta y muestra resultado
+    });
+}
+
+const toSubscript = (num) => {
+    const map = {'0':'₀','1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉'};
+    return num.toString().split('').map(c => map[c] || c).join('');
+};
+
+function buildFormHTML(method) {
+    const state = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    let html = `<form data-method="${method}">`;
+
+    // Selector de Política Inicial (MP, MPD)
+    if (['MP', 'MPD'].includes(method)) {
+        html += `<div class="form-group"><label>Política Inicial</label><select name="politica_inicial">`;
+        state.politicas.forEach((p, i) => {
+            html += `<option value="${i}">P${toSubscript(i+1)} = (${p.vector.join(', ')})</option>`;
+        });
+        html += `</select></div>`;
+    }
+
+    // Factor Descuento (MPD)
+    if (method === 'MPD') {
+        html += `<div class="form-group"><label>Factor (0-1)</label><input type="number" name="factor" value="1" step="0.01" min="0" max="1" required></div>`;
+    }
+
+    // Parámetros AS
+    if (method === 'AS') {
+        html += `<div class="form-group"><label>Tolerancia</label><input type="number" name="tolerancia" value="1e-6" step="any" required></div>`;
+        html += `<div class="form-group"><label>Max Iteraciones</label><input type="number" name="max_iteraciones" value="100" required></div>`;
+        html += `<div class="form-group"><label>Alpha</label><input type="number" name="alpha" value="1.0" step="0.1" required></div>`;
+    }
+
+    html += `<button type="submit" class="btn-submit">Calcular y Ver Resultado</button></form>`;
+    return html;
+}
+
+
+function getMethodName(key) {
+    return { 'EEP':'Enumeración Exhaustiva de Políticas', 'PL':'Programación Lineal', 'MP':'Mejoramiento de Políticas', 'MPD':'Mejoramiento de Políticas con Descuento', 'AS':'Aproximaciones Sucesivas' }[key];
+}
+
+function renderResults(method, data) {
+    const container = document.getElementById('results-panel');
+    container.innerHTML = `<h3 style="margin-bottom:1rem; border-bottom:1px solid; padding-bottom:0.5rem;">Método: ${getMethodName(method)}</h3>`;
+
+    if (method === 'EEP' && data.optimal_policy) {
+        const vecStr = data.optimal_policy.vector.join(', ');
+        data.result.forEach((pol, i) => {
+            const piStr = pol.vector.map((v, j) => `π<sub>${j}</sub> = ${v.toFixed(4)}`).join(' &nbsp;|&nbsp; ');
+            container.innerHTML += `<div style="padding:1rem; border-radius:8px; margin-bottom:1rem; border-left:3px solid var(--accent);">
+                <strong>Política ${i+1}:</strong> (${pol.original.join(', ')})<br>
+                <strong>Costo:</strong> ${pol.cost.toFixed(4)}<br>
+                <div style="font-family:monospace; margin-top:0.5rem;">${piStr}</div>
+            </div>`;
+        });
+
+        container.innerHTML += `
+                <div style="margin-top: 1.5rem; padding: 1rem; background: #065f46; border-radius: 8px; color: white; text-align: center; border: 1px solid #10b981;">
+                    <h4 style="margin:0;">La política óptima es: P<sub>${data.optimal_policy.index}</sub> = (${vecStr})</h4>
+                </div>
+            `;
+    } else if (method === 'PL') {
+        const vecStr = data.optimal_policy.join(', ');
+        const formatKey = (key, letra) => key.replace(/([a-zA-Z])_\{(\d+)\s*,\s*(\d+)\}/g, (_, l, i, k) => `${letra}<sub>${i}${k}</sub>`);
+        let variablesHTML = `<div style="padding: 0.6rem 0.8rem; border-radius: 6px; font-family: monospace; border-left: 3px solid #3b82f6;">`;
+        
+        data.yi.forEach((val, i) => {
+            const rawKey = data.llaves?.[i] || `y_${i},?`;
+            const displayVal = typeof val === 'number' ? val.toFixed(4) : val;
+            variablesHTML += `<span style="margin-right: 2em;">${formatKey(rawKey, "y")} = ${displayVal}</span>`;
+        })
+        variablesHTML += `</div>
+        <div style="padding: 0.6rem 0.8rem; border-radius: 6px; font-family: monospace; border-left: 3px solid #f59e0b;">
+        `
+        data.Di.forEach((val, i) => {
+            const rawKey = data.llaves?.[i] || `D_${i},?`;
+            const displayVal = typeof val === 'number' ? val.toFixed(4) : val;
+            variablesHTML += `<span style="margin-right: 2em;"> ${formatKey(rawKey, "D")} = ${displayVal}</span>`
+        })
+        variablesHTML += `</div>`
+
+        container.innerHTML += `<div style="text-align:center;">
+        <h4>El modelo generado es:</h4>
+        <pre style="font-size: 1.1rem; border-radius:8px; text-align:center; overflow:auto; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+            ${data.model.replace(/y_\{(\d+)\s*,\s*(\d+)\}/g, (m, row, col) => `y<sub>${row}${col}</sub>`).replace("y_{i,k}>=",`y<sub>ik</sub>≥` )}
+        </pre>
+        </div>
+
+        ${variablesHTML}
+        
+        <div style="margin-top: 1.5rem; padding: 1rem; background: #065f46; border-radius: 8px; color: white; text-align: center; border: 1px solid #10b981;">
+            <h4 style="margin:0;">La política óptima es: P = (${vecStr})</h4>
+        </div>
+        `;
+
+        
+    } else {
+        data.matrix.data.forEach((row, i) => {
+            container.innerHTML += `<div style="padding:0.8rem; border-bottom:1px dashed #334155;"><strong>Iteración ${i}:</strong> [${row.map(v=>v.toFixed(4)).join(', ')}]</div>`;
+        });
+    }
+    
 }

@@ -9,9 +9,9 @@ function saveState() {
             ...state,
             currentStep,
             // Asegurar que no se guarden referencias circulares o funciones
-            transitionMatrices: JSON.parse(JSON.stringify(state.transitionMatrices)),
-            costMatrix: JSON.parse(JSON.stringify(state.costMatrix)),
-            policies: JSON.parse(JSON.stringify(state.policies))
+            transiciones: JSON.parse(JSON.stringify(state.transiciones)),
+            costos: JSON.parse(JSON.stringify(state.costos)),
+            politicas: JSON.parse(JSON.stringify(state.politicas))
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     } catch (e) {
@@ -35,9 +35,9 @@ function loadState() {
 
         // Valores por defecto seguros
         state.currentMatrix = state.currentMatrix ?? 0;
-        if (!Array.isArray(state.transitionMatrices)) state.transitionMatrices = [];
-        if (!Array.isArray(state.costMatrix)) state.costMatrix = [];
-        if (!Array.isArray(state.policies)) state.policies = [];
+        if (!Array.isArray(state.transiciones)) state.transiciones = [];
+        if (!Array.isArray(state.costos)) state.costos = [];
+        if (!Array.isArray(state.politicas)) state.politicas = [];
 
         // Reconstruir UI según el paso guardado
         const step = saved.currentStep || 'step-config';
@@ -68,9 +68,9 @@ function clearState() {
     state.P = 0;
     state.tipo = '';
     state.currentMatrix = 0;
-    state.transitionMatrices = [];
-    state.costMatrix = [];
-    state.policies = [];
+    state.transiciones = [];
+    state.costos = [];
+    state.politicas = [];
 }
 
 const DBL_MAX = 1.7976931348623157e+308;   // DBL_MAX de C
@@ -80,9 +80,9 @@ const state = {
     N: 0,
     P: 0, 
     tipo: '',
-    transitionMatrices: [],
-    costMatrix: [],
-    policies: [],
+    transiciones: [],
+    costos: [],
+    politicas: [],
 };
 
 
@@ -169,10 +169,10 @@ $('#configForm').addEventListener('submit', function (e) {
     state.currentMatrix = 0;
 
     // Inicializar matrices vacías
-    state.transitionMatrices = Array.from({ length: K }, () =>
+    state.transiciones = Array.from({ length: K }, () =>
         Array.from({ length: N }, () => Array(N).fill(''))
     );
-    state.costMatrix = Array.from({ length: N }, () => Array(K).fill(''));
+    state.costos = Array.from({ length: N }, () => Array(K).fill(''));
 
     saveState();
     buildTransitionMatrixUI();
@@ -189,8 +189,8 @@ function buildTransitionMatrixUI() {
         showSection('#step-config');
         return;
     }
-    if (!Array.isArray(state.transitionMatrices) || state.transitionMatrices.length !== state.K) {
-        state.transitionMatrices = Array.from({ length: state.K }, () =>
+    if (!Array.isArray(state.transiciones) || state.transiciones.length !== state.K) {
+        state.transiciones = Array.from({ length: state.K }, () =>
             Array.from({ length: state.N }, () => Array(state.N).fill(''))
         );
     }
@@ -210,7 +210,7 @@ function buildTransitionMatrixUI() {
         html += `<tr data-row="${i}"><td><strong>Estado ${i}</strong></td>`;
         for (let j = 0; j < state.N; j++) {
             // Acceso seguro
-            const val = state.transitionMatrices[state.currentMatrix]?.[i]?.[j] ?? '';
+            const val = state.transiciones[state.currentMatrix]?.[i]?.[j] ?? '';
             html += `<td><input type="text" class="matrix-cell"
                         data-k="${state.currentMatrix}" data-i="${i}" data-j="${j}"
                         value="${val}" placeholder="1/2 o 0.5"></td>`;
@@ -225,7 +225,7 @@ function buildTransitionMatrixUI() {
             const k = parseInt(this.dataset.k);
             const i = parseInt(this.dataset.i);
             const j = parseInt(this.dataset.j);
-            state.transitionMatrices[k][i][j] = this.value;
+            state.transiciones[k][i][j] = this.value;
             highlightCell(this, true);
             validateRow(i);
             saveState(); // 💾 Guarda automáticamente al escribir
@@ -260,7 +260,7 @@ function attachRowSumListeners() {
             const k = parseInt(this.dataset.k);
             const i = parseInt(this.dataset.i);
             const j = parseInt(this.dataset.j);
-            state.transitionMatrices[k][i][j] = this.value;
+            state.transiciones[k][i][j] = this.value;
             validateRow(i);
         });
     });
@@ -349,7 +349,7 @@ $('#btnFinishTransitions').addEventListener('click', () => {
     }
     
     if (errors.length > 0) {
-        alert('⚠️ Corrige los errores en las matrices antes de continuar:\n' + errors.join('\n'));
+        alert('Corrige los errores en las matrices antes de continuar:\n' + errors.join('\n'));
         return; // ← Detiene la navegación
     }
     
@@ -370,7 +370,7 @@ function buildCostMatrixUI() {
     for (let i = 0; i < state.N; i++) {
         html += `<tr><td><strong>Estado ${i}</strong></td>`;
         for (let k = 0; k < state.K; k++) {
-            const val = state.costMatrix[i][k];
+            const val = state.costos[i][k];
             const display = (val === '' || val === null) ? '' : val;
             html += `<td><input type="text" class="cost-cell" data-i="${i}" data-k="${k}"
                         value="${display}" placeholder="-"></td>`;
@@ -383,7 +383,7 @@ function buildCostMatrixUI() {
         inp.addEventListener('input', function() {
             highlightCell(this, false); 
             const i=parseInt(this.dataset.i), k=parseInt(this.dataset.k);
-            state.costMatrix[i][k] = this.value;
+            state.costos[i][k] = this.value;
             saveState();
         });
     });
@@ -393,7 +393,7 @@ $('#btnGoPolicies').addEventListener('click', () => {
     // Finalizar costos vacíos con DBL_MAX
     for (let i = 0; i < state.N; i++)
         for (let k = 0; k < state.K; k++)
-            if (state.costMatrix[i][k] === '') state.costMatrix[i][k] = DBL_MAX;
+            if (state.costos[i][k] === '') state.costos[i][k] = DBL_MAX;
     saveState(); // ← NUEVO
     buildPolicyUI();
     showSection('#step-policies');
@@ -415,12 +415,12 @@ $('#btnAddPolicy').addEventListener('click', () => {
     const vector = [];
     for (let i = 0; i < state.N; i++) {
         const inp = $(`#polVec_${i}`), v = parseInt(inp.value, 10);
-        if (isNaN(v)) { alert(`⚠️ El valor del Estado ${i} no es un entero válido.`); return; }
+        if (isNaN(v)) { alert(`El valor del Estado ${i} no es un entero válido.`); return; }
         vector.push(v); inp.value = '';
     }
     // Nombre automático 1-indexado: P_1, P_2...
-    const name = `P${state.policies.length + 1}`;
-    state.policies.push({ name, vector });
+    const name = `P${state.politicas.length + 1}`;
+    state.politicas.push({ name, vector });
     renderPoliciesList();
     saveState();
 });
@@ -430,12 +430,12 @@ function renderPoliciesList() {
     const list = $('#policiesList');
     list.innerHTML = '';
 
-    if (state.policies.length === 0) {
+    if (state.politicas.length === 0) {
         list.innerHTML = '<p class="text-muted">No hay políticas agregadas aún.</p>';
         return;
     }
 
-    state.policies.forEach((pol, idx) => {
+    state.politicas.forEach((pol, idx) => {
         list.innerHTML += `
             <div class="card policy-card mb-2">
                 <div class="card-body d-flex align-items-center justify-content-between py-2">
@@ -449,7 +449,7 @@ function renderPoliciesList() {
     $$('.btn-remove').forEach(btn => {
         btn.addEventListener('click', function () {
             const idx = parseInt(this.dataset.idx);
-            state.policies.splice(idx, 1);
+            state.politicas.splice(idx, 1);
             renderPoliciesList();
         });
     });
@@ -466,7 +466,7 @@ $('#btnValidate').addEventListener('click', () => {
         for (let i = 0; i < state.N; i++) {
             let sum = 0, hasError = false;
             for (let j = 0; j < state.N; j++) {
-                const raw = state.transitionMatrices[k][i][j];
+                const raw = state.transiciones[k][i][j];
                 const val = parseFraction(raw);
                 if (val === null) { errors.push(`Transición Dec ${k+1}, Est ${i}→${j}: vacío.`); hasError=true; break; }
                 if (isNaN(val))  { errors.push(`Transición Dec ${k+1}, Est ${i}→${j}: formato inválido ("${raw}").`); hasError=true; break; }
@@ -482,7 +482,7 @@ $('#btnValidate').addEventListener('click', () => {
     // 2. Costos (solo formato)
     for (let i = 0; i < state.N; i++) {
         for (let k = 0; k < state.K; k++) {
-            const raw = state.costMatrix[i][k];
+            const raw = state.costos[i][k];
             if (raw !== '' && raw !== null) {
                 const val = parseFraction(raw);
                 if (isNaN(val)) errors.push(`Costo Dec ${k+1}, Est ${i}: formato inválido ("${raw}").`);
@@ -491,10 +491,10 @@ $('#btnValidate').addEventListener('click', () => {
     }
 
     // 3. Políticas y Tipo
-    if (state.policies.length !== state.P) errors.push(`Faltan políticas: se esperan ${state.P}, hay ${state.policies.length}.`);
+    if (state.politicas.length !== state.P) errors.push(`Faltan políticas: se esperan ${state.P}, hay ${state.politicas.length}.`);
     if (!['min','max'].includes(state.tipo)) errors.push('Tipo no válido.');
     
-    state.policies.forEach((pol, idx) => {
+    state.politicas.forEach((pol, idx) => {
         if (pol.vector.length !== state.N) errors.push(`${pol.name}: tamaño inválido.`);
         pol.vector.forEach((v, si) => {
             if (v < 1 || v > state.K) errors.push(`${pol.name}, Est ${si}: valor ${v} fuera de [1, ${state.K}].`);
@@ -509,13 +509,13 @@ $('#btnValidate').addEventListener('click', () => {
     // ✅ Payload limpio con floats reales
     const payload = {
         K: state.K, N: state.N, P: state.P, tipo: state.tipo,
-        transitionMatrices: state.transitionMatrices.map(mat =>
+        transiciones: state.transiciones.map(mat =>
             mat.map(row => row.map(v => { const p=parseFraction(v); return isNaN(p)?0:p; }))
         ),
-        costMatrix: state.costMatrix.map(row => 
+        costos: state.costos.map(row => 
             row.map(v => (v === '' || v === null) ? DBL_MAX : parseFraction(v))
         ),
-        policies: state.policies,
+        politicas: state.politicas,
     };
 
     fetch('/procesar', { 
@@ -554,10 +554,10 @@ $('#btnBackToCosts').addEventListener('click', () => {
 
 // De Transiciones → Config (con advertencia si hay datos)
 $('#btnBackToConfig').addEventListener('click', () => {
-    const hasData = state.transitionMatrices.some(mat => 
+    const hasData = state.transiciones.some(mat => 
         mat.some(row => row.some(v => v !== ''))
     );
-    if (hasData && !confirm('⚠️ Regresar a configuración borrará las matrices. ¿Continuar?')) {
+    if (hasData && !confirm('Regresar a configuración borrará las matrices. ¿Continuar?')) {
         return;
     }
     if (hasData) {

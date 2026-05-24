@@ -23,7 +23,7 @@
             <div class="row mb-4">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h5 class="mb-0">Configuración Básica</h5>
-                    <button class="btn btn-link p-0 edit-link" data-target="costos">Editar Configuración</button>
+                    <button class="btn btn-link p-0 edit-link" data-target="costos" id="btnEditConfig">Editar Configuración</button>
                 </div>
                 <div class="col-md-3">
                     <div class="summary-item">
@@ -55,7 +55,7 @@
             <div class="mb-4">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h5 class="mb-0">Matriz de Costos</h5>
-                    <button class="btn btn-link p-0 edit-link" data-target="costos">Editar Matriz</button>
+                    <button class="btn btn-link p-0 edit-link" data-target="costos" id="btnEditConfig">Editar Matriz</button>
                 </div>
                 <div class="cost-matrix-scroll">
                     <table class="table table-bordered table-sm text-center" id="costMatrixTable">
@@ -69,7 +69,7 @@
             <div class="mb-4">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h5 class="mb-0">Políticas</h5>
-                    <button class="btn btn-link p-0 edit-link" data-target="politicas">Editar Políticas</button>
+                    <button class="btn btn-link p-0 edit-link" data-target="politicas" id="btnEditConfig">Editar Políticas</button>
                 </div>
                 <div class="policies-horizontal" id="policiesList"></div>
             </div>
@@ -78,7 +78,7 @@
             <div class="mb-3">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h5 class="mb-0">Matrices de Transición</h5>
-                    <button class="btn btn-link p-0 edit-link" data-target="transiciones">Editar Transiciones</button>
+                    <button class="btn btn-link p-0 edit-link" data-target="transiciones" id="btnEditConfig">Editar Transiciones</button>
                 </div>
                 <div class="alert alert-info py-2">
                     <span id="transitionSummary">-</span>
@@ -90,22 +90,24 @@
     <!-- Selección de Método -->
     <h4 class="mb-3">Elegir el método de solución</h4>
     <div class="methods-grid">
-        <a href="/EEP" class="method-card">
-            <div class="method-name">Enumeración Exhaustiva de Políticas</div>
-        </a>
-        <a href="/PL" class="method-card">
-            <div class="method-name">Programación Lineal</div>
-        </a>
-        <a href="/MP" class="method-card">
-            <div class="method-name">Mejoramiento de Políticas</div>
-        </a>
-        <a href="/MPD" class="method-card">
-            <div class="method-name">Mejoramiento con Descuento</div>
-        </a>
-        <a href="/AS" class="method-card">
-            <div class="method-name">Aproximaciones Sucesivas</div>
-        </a>
+        <button data-method="EEP" class="method-btn">Enumeración Exhaustiva</button>
+        <button data-method="PL" class="method-btn">Programación Lineal</button>
+        <button data-method="MP" class="method-btn">Mejoramiento de Políticas</button>
+        <button data-method="MPD" class="method-btn">Mejoramiento con Descuento</button>
+        <button data-method="AS" class="method-btn">Aproximaciones Sucesivas</button>
     </div>
+
+    <div id="modal-overlay" class="modal-overlay hidden">
+        <div class="modal-card">
+        <div class="modal-header">
+            <h3 id="modal-title">Parámetros</h3>
+            <button id="btn-close-modal" class="close-btn">&times;</button>
+        </div>
+        <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <section id="results-panel" class="panel card mt-4 hidden"></section>
 
     <div class="text-center mt-4">
         <a href="/" class="btn btn-outline-secondary">← Volver al Inicio</a>
