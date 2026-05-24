@@ -269,6 +269,15 @@ function attachRowSumListeners() {
 function validateRow(i) {
     const tr = $(`#transitionMatricesContainer tr[data-row="${i}"]`);
     const inputs = tr.querySelectorAll('.matrix-cell');
+    
+    const allEmpty = Array.from(inputs).every(inp => inp.value.trim() === '');
+    if (allEmpty) {
+        tr.classList.remove('row-invalid');
+        tr.classList.add('row-valid');
+        tr.querySelector('.row-sum').textContent = '—';
+        return;
+    }
+    
     let sum = 0;
     let allFilled = true;
 
@@ -332,6 +341,14 @@ $('#btnFinishTransitions').addEventListener('click', () => {
     for (let i = 0; i < state.N; i++) {
         const tr = $(`#transitionMatricesContainer tr[data-row="${i}"]`);
         const inputs = tr.querySelectorAll('.matrix-cell');
+
+        const allEmpty = Array.from(inputs).every(inp => inp.value.trim() === '');
+        if (allEmpty) {
+            tr.classList.remove('row-invalid');
+            tr.classList.add('row-valid');
+            continue;
+        }
+
         let sum = 0, rowHasError = false;
         
         inputs.forEach(inp => {
@@ -345,7 +362,11 @@ $('#btnFinishTransitions').addEventListener('click', () => {
         if (rowHasError || Math.abs(sum - 1.0) > ROW_SUM_TOLERANCE) {
             errors.push(`Fila ${i}: suma=${sum.toFixed(4)} o valores inválidos`);
             tr.classList.add('row-invalid');
+        } else {
+            tr.classList.remove('row-invalid');
+            tr.classList.add('row-valid');
         }
+
     }
     
     if (errors.length > 0) {
@@ -465,6 +486,7 @@ $('#btnValidate').addEventListener('click', () => {
     for (let k = 0; k < state.K; k++) {
         for (let i = 0; i < state.N; i++) {
             let sum = 0, hasError = false;
+            
             for (let j = 0; j < state.N; j++) {
                 const raw = state.transiciones[k][i][j];
                 const val = parseFraction(raw);
@@ -510,7 +532,15 @@ $('#btnValidate').addEventListener('click', () => {
     const payload = {
         K: state.K, N: state.N, P: state.P, tipo: state.tipo,
         transiciones: state.transiciones.map(mat =>
-            mat.map(row => row.map(v => { const p=parseFraction(v); return isNaN(p)?0:p; }))
+            mat.map(row => {
+                if (row.every(v => v === '' || v === null)) {
+                    return Array(row.length).fill(-1);
+                }
+                return row.map(v => { 
+                    const p = parseFraction(v); 
+                    return isNaN(p) ? 0 : p; 
+                });
+            })
         ),
         costos: state.costos.map(row => 
             row.map(v => (v === '' || v === null) ? DBL_MAX : parseFraction(v))
