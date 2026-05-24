@@ -132,6 +132,72 @@ function setupMethodButtons() {
     });
 }
 
+function setupFactorInterestSync() {
+    const alphaInput = document.getElementById('input-alpha');
+    const interestInput = document.getElementById('input-interest');
+    
+    if (!alphaInput || !interestInput) return;
+
+    const PRECISION = 4;
+
+    // α → i:  i = (1/α) - 1
+    const alphaToInterest = (alpha) => {
+        const a = parseFloat(alpha);
+        if (isNaN(a) || a <= 0.001 || a > 1) return '';
+        return ((1 / a) - 1).toFixed(PRECISION);
+    };
+
+    // i → α:  α = 1 / (1 + i)
+    const interestToAlpha = (interest) => {
+        const i = parseFloat(interest);
+        if (isNaN(i) || i < 0) return '';
+        const alpha = 1 / (1 + i);
+        return Math.min(Math.max(alpha, 0.001), 1).toFixed(PRECISION);
+    };
+
+    let isUpdating = false;
+    
+    alphaInput.addEventListener('input', () => {
+        if (isUpdating) return;
+        isUpdating = true;
+        
+        const alpha = alphaInput.value.trim();
+        if (alpha === '' || alpha.endsWith('.')) {
+            isUpdating = false;
+            return;
+        }
+        
+        const interest = alphaToInterest(alpha);
+        if (interest && interest !== '') {
+            interestInput.value = interest;
+        }
+        
+        setTimeout(() => { isUpdating = false; }, 30);
+    });
+
+    interestInput.addEventListener('input', () => {
+        if (isUpdating) return;
+        isUpdating = true;
+        
+        const interest = interestInput.value.trim();
+        if (interest === '' || interest.endsWith('.')) {
+            isUpdating = false;
+            return;
+        }
+        
+        const alpha = interestToAlpha(interest);
+        if (alpha && alpha !== '') {
+            alphaInput.value = Number(alpha).toFixed(3);
+        }
+        
+        setTimeout(() => { isUpdating = false; }, 30);
+    });
+    
+    if (alphaInput.value) {
+        interestInput.value = alphaToInterest(alphaInput.value);
+    }
+}
+
 function executeMethod(method, userParams) {
     const state = JSON.parse(localStorage.getItem(STORAGE_KEY));
     const payload = { ...state, ...userParams }; // Combina datos guardados + inputs del modal
@@ -173,6 +239,10 @@ function openModal(method) {
     body.innerHTML = buildFormHTML(method);
     
     modal.classList.remove('hidden');
+
+    if (method === 'MPD') {
+        setTimeout(setupFactorInterestSync, 100); // Pequeño delay para que el DOM esté listo
+    }
 }
 
 function closeModal() {
@@ -188,19 +258,31 @@ function setupModalListeners() {
         if (e.target.id === 'modal-overlay') closeModal();
     });
 
-    // Listener del formulario DENTRO del modal (usando delegación de eventos)
+    // Listener del formulario DENTRO del modal
     document.getElementById('modal-overlay').addEventListener('submit', (e) => {
         e.preventDefault();
         const form = e.target;
-        const method = form.dataset.method; // Guardamos el método en el form
+        const method = form.dataset.method; 
         const params = {};
+        
         for (let [key, value] of new FormData(form)) {
-            // Convierte a número si es válido
+            if (method === 'MPD') {
+                if (key === 'alpha') {
+                    const num = parseFloat(value);
+                    params.alpha = isNaN(num) ? 1 : num;
+                }
+                continue;
+            }
             params[key] = (!isNaN(value) && value.trim() !== '') ? Number(value) : value;
         }
         
-        closeModal(); // Cierra el pop-up
-        executeMethod(method, params); // Ejecuta y muestra resultado
+        // Validación final de rango para alpha
+        if (method === 'MPD' && (!params.alpha || params.alpha < 0.001 || params.alpha > 1)) {
+            alert('⚠️ El factor α debe estar entre 0.001 y 1');
+            return;
+        }
+        closeModal();
+        executeMethod(method, params); 
     });
 }
 
@@ -211,7 +293,7 @@ const toSubscript = (num) => {
 
 function buildFormHTML(method) {
     const state = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    let html = `<form data-method="${method}">`;
+    let html = `<form data-method="${method}" novalidate>`;
 
     // Selector de Política Inicial (MP, MPD)
     if (['MP', 'MPD'].includes(method)) {
@@ -224,14 +306,27 @@ function buildFormHTML(method) {
 
     // Factor Descuento (MPD)
     if (method === 'MPD') {
-        html += `<div class="form-group"><label>Factor (0-1)</label><input type="number" name="factor" value="1" step="0.01" min="0" max="1" required></div>`;
+        html += `
+        <div class="form-row">
+            <div class="form-col">
+                <label for="input-alpha">Factor α (descuento)</label>
+                <input type="number" id="input-alpha" name="alpha" value="1" step="any" min="0" max="10">
+                <small class="hint">Sugerido: α ∈ (0, 1]</small>
+            </div>
+            <div class="form-col">
+                <label for="input-interest">Tasa de interés i</label>
+                <input type="number" id="input-interest" value="0" step="any" min="-0.999">
+                <small class="hint">i = (1/α) - 1</small>
+            </div>
+        </div>
+        `;
     }
 
     // Parámetros AS
     if (method === 'AS') {
-        html += `<div class="form-group"><label>Tolerancia</label><input type="number" name="tolerancia" value="1e-6" step="any" required></div>`;
-        html += `<div class="form-group"><label>Max Iteraciones</label><input type="number" name="max_iteraciones" value="100" required></div>`;
-        html += `<div class="form-group"><label>Alpha</label><input type="number" name="alpha" value="1.0" step="0.1" required></div>`;
+        html += `<div class="form-group"><label>Tolerancia</label><input type="number" name="tolerancia" value="0.001" step="any" required></div>`;
+        html += `<div class="form-group"><label>Max Iteraciones</label><input type="number" name="max_iteraciones" value="10" required></div>`;
+        html += `<div class="form-group"><label>Alpha</label><input type="number" name="alpha" value="1" step="0.1" required></div>`;
     }
 
     html += `<button type="submit" class="btn-submit">Calcular y Ver Resultado</button></form>`;
@@ -298,10 +393,54 @@ function renderResults(method, data) {
         `;
 
         
+    } else if (method === "AS") {
+        let vecStr = "";
+        const rowCount = data.matrix.rows;
+        const rawData = data.matrix.data || [];
+        let j = 1;
+        for (let i = 0; i < rowCount-2; i += 2) {
+            const iterIndex = j++;
+            const Vi = rawData[i] || [];
+            const Policy = rawData[i + 1] || [];
+
+            const viStr = Vi.map(v => typeof v === 'number' ? (Number.isInteger(v) ? v : v.toFixed(3)) : v).join(', ');
+            const polStr = Policy.join(', ');
+            vecStr = viStr
+
+            container.innerHTML += `
+            <div style="
+                display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;
+                padding: 0.35rem 0.75rem; border-bottom: 1px dashed #e2e8f0;
+                font-family: 'SF Mono', 'Consolas', monospace; font-size: 0.85rem;
+            ">
+                <span style="
+                    background: #3b82f6; color: white; padding: 0.1rem 0.4rem;
+                    border-radius: 4px; font-weight: 600; font-size: 0.75rem;
+                    min-width: 3.5rem; text-align: center;
+                ">Iter ${iterIndex}</span>
+                <span style="color: #64748b;">V:</span>
+                <span style="color: #1e293b;">[${polStr}]</span>
+                <span style="color: #cbd5e1; font-weight: 300;">│</span>
+                <span style="color: #64748b;">D:</span>
+                <span style="color: #059669; font-weight: 500;">(${viStr})</span>
+            </div>`;
+        }
+
+        container.innerHTML += `<div style="margin-top: 1.5rem; padding: 1rem; background: #065f46; border-radius: 8px; color: white; text-align: center; border: 1px solid #10b981;">
+                <h4 style="margin:0;">La política aproximada es: P = (${vecStr})</h4>
+            </div>`
     } else {
+        const vecStr = data.optimal_policy.join(', ');
         data.matrix.data.forEach((row, i) => {
-            container.innerHTML += `<div style="padding:0.8rem; border-bottom:1px dashed #334155;"><strong>Iteración ${i}:</strong> [${row.map(v=>v.toFixed(4)).join(', ')}]</div>`;
+            container.innerHTML += `
+            <div style="padding:0.8rem; border-bottom:1px dashed #334155;">
+            <strong>Iteración ${i}:</strong> 
+            (${row.join(', ')})
+            </div>`;
         });
+        container.innerHTML += `<div style="margin-top: 1.5rem; padding: 1rem; background: #065f46; border-radius: 8px; color: white; text-align: center; border: 1px solid #10b981;">
+                <h4 style="margin:0;">La política óptima es: P = (${vecStr})</h4>
+            </div>`
     }
     
 }

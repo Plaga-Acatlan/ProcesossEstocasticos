@@ -12,9 +12,6 @@ app = Flask(__name__)
 # Configuración y Carga de C
 lib = None
 try:
-    lib = ctypes.CDLL(ctypes.util.find_library("c"))
-    lib.free.argtypes = [ctypes.c_void_p]
-
     _EXT_MAP = {"Windows": "dll", "Linux": "so", "Darwin": "dylib"}
     _SYSTEM = platform.system()
     _LIB_EXT = _EXT_MAP.get(_SYSTEM, "so")
@@ -81,8 +78,6 @@ try:
     lib.free_matrix.argtypes = [ctypes.POINTER(CMatrix)]
     lib.free_matrix.restype = None
     lib.free_global_matrices.restype = None
-    lib.free.argtypes = [ctypes.c_char_p]
-    lib.free.restype = None
     
 except Exception as e:
     print(f"❌ Error cargando librería C: {e}")
@@ -329,12 +324,10 @@ def programacion_lineal():
 
 def general_solver(c_func, data, *args):
     cargar_datos(data)
-    print("Ok, aqui:", *args)
     ptr = c_func(*args)
-    print("Pase lo critico")
     matrix = matrixC_to_py(ptr) 
-    lib.free_global_matrices()   
-    return jsonify({"status": "ok", "matrix": matrix})
+    lib.free_global_matrices()  
+    return jsonify({"status": "ok", "matrix": matrix, "optimal_policy": matrix["data"][-1]})
 
 @app.route('/MP', methods=['POST'])
 def mejoramiento_politicas():
@@ -350,7 +343,7 @@ def mejoramiento_descuento():
     try:
         data = request.get_json()
         pol_idx = int(data.get('politica_inicial', 0))
-        factor = float(data.get('factor', 1.0))
+        factor = float(data.get('alpha', 1.0))
         return general_solver(lib.MPD, data, pol_idx+1, factor)
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
